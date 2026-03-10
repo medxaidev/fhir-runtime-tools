@@ -28,6 +28,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'r4-profiles': ['./src/data/r4-profiles.json'],
+          'us-core-profiles': ['./src/data/us-core-profiles.json'],
         },
       },
     },

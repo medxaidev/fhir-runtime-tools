@@ -1,15 +1,19 @@
 import { useEffect } from 'react';
 import { PrismUIProvider } from '@prismui/react';
-import { usePage, useRuntimeState, useNotification } from '@prismui/react';
+import { usePage, useModal, useRuntimeState, useNotification, useDrawer } from '@prismui/react';
 import { runtime } from './setup';
 import './styles.css';
 
-import { ValidatorPage } from './tools/validator';
-import { FHIRPathPage } from './tools/fhirpath';
-import { ProfilePage } from './tools/profile';
-import { ResourcePage } from './tools/resource';
-import { DiffPage } from './tools/diff';
-import { GeneratorPage } from './tools/generator';
+// Pages
+import { RuntimePlayground } from './pages/RuntimePlayground';
+import { InteractionScenarios } from './pages/InteractionScenarios';
+import { FormAsyncPage } from './pages/FormAsyncPage';
+import { GovernancePage } from './pages/GovernancePage';
+import { DevToolsPage } from './pages/DevToolsPage';
+import { WorkflowPage } from './pages/WorkflowPage';
+
+// Shared
+import { ConfirmModal } from './components/ConfirmModal';
 
 // ── Route definitions ──────────────────────────
 interface NavItem {
@@ -20,33 +24,28 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'Validator', label: 'Resource Validator', icon: '◎', section: 'Tools' },
-  { id: 'FHIRPath', label: 'FHIRPath Lab', icon: '⟡', section: 'Tools' },
-  { id: 'Profile', label: 'Profile Explorer', icon: '◈', section: 'Tools' },
-  { id: 'Resource', label: 'Resource Lab', icon: '▣', section: 'Tools' },
-  { id: 'Diff', label: 'Resource Diff', icon: '⊟', section: 'Tools' },
-  { id: 'Generator', label: 'Resource Generator', icon: '⊞', section: 'Tools' },
+  { id: 'RuntimePlayground', label: 'Runtime Playground', icon: '◎', section: 'Core' },
+  { id: 'Interactions', label: 'Interaction Scenarios', icon: '⟡', section: 'Core' },
+  { id: 'FormAsync', label: 'Form & Async', icon: '◈', section: 'Modules' },
+  { id: 'Governance', label: 'Governance / Policy', icon: '⛊', section: 'Modules' },
+  { id: 'DevTools', label: 'DevTools & Automation', icon: '⚙', section: 'Platform' },
+  { id: 'Workflow', label: 'Approval Workflow', icon: '▤', section: 'Scenarios' },
 ];
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
-  Validator: ValidatorPage,
-  FHIRPath: FHIRPathPage,
-  Profile: ProfilePage,
-  Resource: ResourcePage,
-  Diff: DiffPage,
-  Generator: GeneratorPage,
+  RuntimePlayground,
+  Interactions: InteractionScenarios,
+  FormAsync: FormAsyncPage,
+  Governance: GovernancePage,
+  DevTools: DevToolsPage,
+  Workflow: WorkflowPage,
 };
-
-// ── Pages that need full-bleed (no padding) ────
-const FULL_BLEED_PAGES = new Set(['Validator']);
 
 // ── Content Router ─────────────────────────────
 function ContentRouter() {
   const { currentPage } = usePage();
-  const page = currentPage ?? 'Validator';
-  const Component = PAGE_MAP[page] ?? ValidatorPage;
-  const isFullBleed = FULL_BLEED_PAGES.has(page);
-  return isFullBleed ? <Component /> : <div className="shell-main--padded"><Component /></div>;
+  const Component = PAGE_MAP[currentPage ?? 'RuntimePlayground'] ?? RuntimePlayground;
+  return <Component />;
 }
 
 // ── Sidebar ────────────────────────────────────
@@ -88,15 +87,17 @@ function Sidebar() {
 // ── Header ─────────────────────────────────────
 function Header() {
   const state = useRuntimeState();
+  const moduleStatus = runtime.getModuleStatus();
+  const activeCount = Object.values(moduleStatus).filter(s => s === 'active').length;
 
   return (
     <header className="shell-header">
-      <span className="shell-header__logo">FHIR Runtime Tools</span>
-      <span className="shell-header__badge">v0.1.0</span>
+      <span className="shell-header__logo">PrismUI Dashboard</span>
+      <span className="shell-header__badge">v0.2.0</span>
       <span className="shell-header__spacer" />
       <div className="shell-header__meta">
-        <span className="shell-header__meta-item">fhir-runtime v0.7.2</span>
         <span className="shell-header__meta-item">state v{state.version}</span>
+        <span className="shell-header__meta-item">{activeCount} modules</span>
       </div>
     </header>
   );
@@ -105,15 +106,28 @@ function Header() {
 // ── Status Bar ─────────────────────────────────
 function StatusBar() {
   const state = useRuntimeState();
-  const { currentPage } = usePage();
+  const { currentPage, isLocked } = usePage();
   const { count: notifCount } = useNotification();
+  const { drawerStack } = useDrawer();
+  const { modalStack } = useModal();
 
   return (
     <div className="shell-statusbar">
       <span className="shell-statusbar__item">
-        <span className="shell-statusbar__dot" /> Ready
+        <span className="shell-statusbar__dot" /> Runtime ready
       </span>
-      <span className="shell-statusbar__item">Tool: {currentPage ?? '—'}</span>
+      <span className="shell-statusbar__item">Page: {currentPage ?? '—'}</span>
+      {isLocked && (
+        <span className="shell-statusbar__item">
+          <span className="shell-statusbar__dot shell-statusbar__dot--error" /> LOCKED
+        </span>
+      )}
+      {modalStack.length > 0 && (
+        <span className="shell-statusbar__item">Modals: {modalStack.length}</span>
+      )}
+      {drawerStack.length > 0 && (
+        <span className="shell-statusbar__item">Drawers: {drawerStack.length}</span>
+      )}
       {notifCount > 0 && (
         <span className="shell-statusbar__item">
           <span className="shell-statusbar__dot shell-statusbar__dot--warning" /> {notifCount} notifications
@@ -125,14 +139,20 @@ function StatusBar() {
   );
 }
 
+// ── Modal Layer ────────────────────────────────
+function ModalLayer() {
+  const { isOpen } = useModal();
+  return <>{isOpen('confirm') && <ConfirmModal />}</>;
+}
+
 // ── Init ───────────────────────────────────────
 function InitPage() {
   const { mount, transition, currentPage } = usePage();
 
   useEffect(() => {
     if (!currentPage) {
-      mount('Validator');
-      transition('Validator');
+      mount('RuntimePlayground');
+      transition('RuntimePlayground');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -152,6 +172,7 @@ export function App() {
         </main>
         <StatusBar />
       </div>
+      <ModalLayer />
     </PrismUIProvider>
   );
 }

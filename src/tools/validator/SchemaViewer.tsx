@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { CanonicalProfile, CanonicalElement } from 'fhir-runtime';
 
 // ── Types ────────────────────────────────────
 
-interface ElementNode {
+export interface ElementNode {
   element: CanonicalElement;
   depth: number;
   children: ElementNode[];
@@ -14,13 +14,18 @@ interface SchemaViewerProps {
   profile: CanonicalProfile | null;
   onElementSelect?: (element: CanonicalElement) => void;
   selectedPath?: string | null;
+  onInsertElement?: (element: CanonicalElement) => void;
+}
+
+export interface ElementDetailProps {
+  element: CanonicalElement | null;
+  onInsertElement?: (element: CanonicalElement) => void;
 }
 
 // ── Helpers ──────────────────────────────────
 
-function buildElementTree(profile: CanonicalProfile): ElementNode[] {
+export function buildElementTree(profile: CanonicalProfile): ElementNode[] {
   const elements = Array.from(profile.elements.values());
-  // Skip the root element (e.g., "Patient")
   const children = elements.filter((el) => {
     const parts = el.path.split('.');
     return parts.length === 2;
@@ -61,12 +66,63 @@ function getElementName(path: string): string {
   return parts[parts.length - 1];
 }
 
-// ── Element Detail Panel ─────────────────────
+/** Generate a default value snippet for a given element type */
+export function generateElementDefault(element: CanonicalElement): unknown {
+  if (element.types.length === 0) return {};
+  const code = element.types[0].code;
+  switch (code) {
+    case 'string': case 'uri': case 'url': case 'canonical': case 'id': case 'code':
+    case 'markdown': case 'oid': case 'uuid': case 'base64Binary': case 'xhtml':
+      return '';
+    case 'boolean': return false;
+    case 'integer': case 'positiveInt': case 'unsignedInt': return 0;
+    case 'decimal': return 0.0;
+    case 'instant': case 'dateTime': case 'date': case 'time': return '';
+    case 'CodeableConcept': return { text: '' };
+    case 'Coding': return { system: '', code: '' };
+    case 'Reference': return { reference: '' };
+    case 'Identifier': return { system: '', value: '' };
+    case 'HumanName': return { family: '', given: [''] };
+    case 'Address': return { line: [''], city: '', state: '', postalCode: '' };
+    case 'ContactPoint': return { system: 'phone', value: '' };
+    case 'Quantity': return { value: 0, unit: '' };
+    case 'Period': return { start: '', end: '' };
+    case 'Attachment': return { contentType: '' };
+    case 'Narrative': return { status: 'generated', div: '<div xmlns="http://www.w3.org/1999/xhtml"></div>' };
+    case 'Meta': return {};
+    default: return {};
+  }
+}
 
-function ElementDetail({ element }: { element: CanonicalElement }) {
+// ── Element Detail Panel (exported) ──────────
+
+export function ElementDetail({ element, onInsertElement }: ElementDetailProps) {
+  if (!element) {
+    return (
+      <div className="element-detail element-detail--empty">
+        <div className="placeholder" style={{ padding: '40px 16px' }}>
+          <div className="placeholder__icon">&#x25C8;</div>
+          <div className="placeholder__title">Element Details</div>
+          <div className="placeholder__desc">Click an element in the schema tree to view its details.</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="element-detail">
-      <div className="element-detail__header">Element Details</div>
+      <div className="element-detail__header">
+        <span>Element Details</span>
+        {onInsertElement && (
+          <button
+            className="btn btn--small btn--ghost"
+            onClick={() => onInsertElement(element)}
+            title="Insert this element into the JSON editor"
+          >
+            + Insert
+          </button>
+        )}
+      </div>
       <div className="element-detail__rows">
         <div className="element-detail__row">
           <span className="element-detail__label">Path</span>
@@ -162,6 +218,7 @@ function TreeNode({
         <span className={`schema-tree-node__name ${isRequired ? 'schema-tree-node__name--required' : ''}`}>
           {name}
         </span>
+        {isRequired && <span className="schema-tree-node__required-star">★</span>}
         <span className="schema-tree-node__meta">
           <span className="schema-tree-node__cardinality">
             {formatCardinality(node.element.min, node.element.max)}
@@ -193,7 +250,6 @@ function TreeNode({
 
 export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaViewerProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
-  const [selectedElement, setSelectedElement] = useState<CanonicalElement | null>(null);
   const [internalSelectedPath, setInternalSelectedPath] = useState<string | null>(null);
 
   const activePath = selectedPath ?? internalSelectedPath;
@@ -201,6 +257,12 @@ export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaV
   const tree = useMemo(() => {
     if (!profile) return [];
     return buildElementTree(profile);
+  }, [profile]);
+
+  // Reset expanded paths when profile changes
+  useEffect(() => {
+    setExpandedPaths(new Set());
+    setInternalSelectedPath(null);
   }, [profile]);
 
   const handleToggle = useCallback((path: string) => {
@@ -216,7 +278,6 @@ export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaV
   }, []);
 
   const handleSelect = useCallback((el: CanonicalElement) => {
-    setSelectedElement(el);
     setInternalSelectedPath(el.path);
     onElementSelect?.(el);
   }, [onElementSelect]);
@@ -225,7 +286,7 @@ export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaV
     return (
       <div className="schema-viewer schema-viewer--empty">
         <div className="placeholder">
-          <div className="placeholder__icon">◈</div>
+          <div className="placeholder__icon">&#x25C8;</div>
           <div className="placeholder__title">Select a Resource</div>
           <div className="placeholder__desc">Choose a resource type from the list to view its schema.</div>
         </div>
@@ -253,11 +314,6 @@ export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaV
           ))}
         </div>
       </div>
-      {selectedElement && (
-        <div className="schema-viewer__detail-panel">
-          <ElementDetail element={selectedElement} />
-        </div>
-      )}
     </div>
   );
 }

@@ -5,8 +5,7 @@ interface PackageSelectorProps {
 
 const PACKAGES = [
   { id: 'fhir-r4', label: 'FHIR R4', enabled: true },
-  { id: 'us-core', label: 'US Core', enabled: false },
-  { id: 'cn-core', label: 'CN Core', enabled: false },
+  { id: 'us-core', label: 'US Core 7.0.0', enabled: true },
 ];
 
 export function PackageSelector({ currentPackage, onPackageChange }: PackageSelectorProps) {

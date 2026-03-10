@@ -11,13 +11,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "extract-r4": "node scripts/extract-r4-definitions.mjs"
+    "extract-r4": "node scripts/extract-r4-definitions.mjs",
+    "extract-us-core": "node scripts/extract-us-core.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@prismui/core": "0.2.0",
     "@prismui/react": "0.2.0",
-    "fhir-runtime": "^0.7.1",
+    "fhir-runtime": "^0.7.2",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

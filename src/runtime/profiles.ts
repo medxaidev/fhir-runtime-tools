@@ -2,8 +2,7 @@ import { buildCanonicalProfile } from 'fhir-runtime';
 import type { CanonicalProfile } from 'fhir-runtime';
 
 // ── Profile Registry ──────────────────────────
-// Lazy-loaded from src/data/r4-profiles.json
-// Contains ALL FHIR R4 StructureDefinitions: resources + complex types + primitive types
+// Lazy-loaded from src/data/r4-profiles.json and us-core-profiles.json
 
 const profileCache = new Map<string, CanonicalProfile>();
 const rawSDCache = new Map<string, Record<string, unknown>>();
@@ -12,6 +11,12 @@ const complexTypes = new Set<string>();
 const primitiveTypes = new Set<string>();
 let loaded = false;
 let loadPromise: Promise<void> | null = null;
+
+// ── US Core ──────────────────────────────────
+const usCoreProfileCache = new Map<string, CanonicalProfile>();
+const usCoreProfileNames: string[] = [];
+let usCoreLoaded = false;
+let usCoreLoadPromise: Promise<void> | null = null;
 
 async function loadProfiles(): Promise<void> {
   if (loaded) return;
@@ -39,11 +44,42 @@ async function loadProfiles(): Promise<void> {
       }
       loaded = true;
     } catch (e) {
-      console.warn('[profiles] Failed to load profiles:', e);
+      console.warn('[profiles] Failed to load R4 profiles:', e);
     }
   })();
 
   return loadPromise;
+}
+
+async function loadUSCoreProfiles(): Promise<void> {
+  if (usCoreLoaded) return;
+  if (usCoreLoadPromise) return usCoreLoadPromise;
+
+  // US Core depends on base R4 definitions being loaded first
+  await loadProfiles();
+
+  usCoreLoadPromise = (async () => {
+    try {
+      const mod = await import('../data/us-core-profiles.json');
+      const sdMap = (mod.default ?? mod) as Record<string, unknown>;
+      for (const [name, sd] of Object.entries(sdMap)) {
+        try {
+          const sdObj = sd as Record<string, unknown>;
+          const canonical = buildCanonicalProfile(sdObj as unknown as Parameters<typeof buildCanonicalProfile>[0]);
+          usCoreProfileCache.set(name, canonical);
+          usCoreProfileNames.push(name);
+        } catch {
+          // Skip profiles that fail to build (e.g. Extensions)
+        }
+      }
+      usCoreProfileNames.sort();
+      usCoreLoaded = true;
+    } catch (e) {
+      console.warn('[profiles] Failed to load US Core profiles:', e);
+    }
+  })();
+
+  return usCoreLoadPromise;
 }
 
 export async function getProfile(name: string): Promise<CanonicalProfile | undefined> {
@@ -87,4 +123,15 @@ export function isResourceType(name: string): boolean {
 
 export function isComplexType(name: string): boolean {
   return complexTypes.has(name);
+}
+
+// ── US Core exports ─────────────────────────
+export async function getUSCoreProfileNames(): Promise<string[]> {
+  await loadUSCoreProfiles();
+  return [...usCoreProfileNames];
+}
+
+export async function getUSCoreProfile(name: string): Promise<CanonicalProfile | undefined> {
+  await loadUSCoreProfiles();
+  return usCoreProfileCache.get(name);
 }

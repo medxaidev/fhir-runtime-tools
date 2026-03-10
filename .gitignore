@@ -9,6 +9,7 @@ dist/
 
 # generated FHIR data (rebuild with: node scripts/extract-r4-definitions.mjs)
 src/data/r4-profiles.json
+src/data/us-core-profiles.json
 
 # test coverage
 coverage/
@@ -19,4 +20,4 @@ coverage/
 Thumbs.db
 
 
-devdocs/
+# devdocs/
