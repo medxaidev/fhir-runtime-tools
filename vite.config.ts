@@ -10,10 +10,14 @@ export default defineConfig({
   base: '/fhir-runtime-tools/',
   publicDir: 'public',
   resolve: {
-    alias: {
-      '@prismui/react': path.resolve(__dirname, 'node_modules/@prismui/react/dist/esm/index.mjs'),
-      '@prismui/core': path.resolve(__dirname, 'node_modules/@prismui/core/dist/esm/index.mjs'),
-    },
+    alias: [
+      { find: '@prismui/react', replacement: path.resolve(__dirname, 'node_modules/@prismui/react/dist/esm/index.mjs') },
+      { find: '@prismui/core', replacement: path.resolve(__dirname, 'node_modules/@prismui/core/dist/esm/index.mjs') },
+      { find: /^node:fs\/promises$/, replacement: path.resolve(__dirname, 'src/shims/node-fs.ts') },
+      { find: /^node:fs$/, replacement: path.resolve(__dirname, 'src/shims/node-fs.ts') },
+      { find: /^node:path$/, replacement: path.resolve(__dirname, 'src/shims/node-path.ts') },
+      { find: /^node:url$/, replacement: path.resolve(__dirname, 'src/shims/node-url.ts') },
+    ],
     conditions: ['browser', 'default'],
   },
   optimizeDeps: {
@@ -21,14 +25,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['node:fs', 'node:fs/promises', 'node:path', 'node:url'],
       output: {
-        globals: {
-          'node:fs': '{}',
-          'node:fs/promises': '{}',
-          'node:path': '{}',
-          'node:url': '{}',
-        },
         manualChunks: {
           'r4-profiles': ['./src/data/r4-profiles.json'],
         },
