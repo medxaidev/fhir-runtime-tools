@@ -29,7 +29,21 @@ export default defineConfig({
           'node:path': '{}',
           'node:url': '{}',
         },
+        manualChunks: {
+          'r4-profiles': ['./src/data/r4-profiles.json'],
+        },
       },
+    },
+    assetsInlineLimit: 0,
+    modulePreload: {
+      resolveDependencies: (filename, deps, { hostId, hostType }) => {
+        return deps;
+      },
+    },
+  },
+  experimental: {
+    renderBuiltUrl(filename, { hostType }) {
+      return '/fhir-runtime-tools/' + filename;
     },
   },
   server: {
