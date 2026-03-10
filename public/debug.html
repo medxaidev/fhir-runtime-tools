@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - FHIR Runtime Tools</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>FHIR Runtime Tools - Debug Page</h1>
+    <div id="status"></div>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            status.appendChild(div);
+        }
+        
+        // Test 1: Basic JavaScript
+        log('✓ JavaScript is running', 'success');
+        
+        // Test 2: Check base path
+        log(`Base URL: ${window.location.origin}${window.location.pathname}`, 'info');
+        
+        // Test 3: Check if assets can be loaded
+        const cssPath = '/fhir-runtime-tools/assets/index-Z-dBWUdN.css';
+        const jsPath = '/fhir-runtime-tools/assets/index-finoGuzh.js';
+        
+        fetch(cssPath)
+            .then(res => {
+                if (res.ok) {
+                    log(`✓ CSS file accessible: ${cssPath}`, 'success');
+                } else {
+                    log(`✗ CSS file not found: ${cssPath} (${res.status})`, 'error');
+                }
+            })
+            .catch(err => {
+                log(`✗ CSS fetch error: ${err.message}`, 'error');
+            });
+        
+        fetch(jsPath)
+            .then(res => {
+                if (res.ok) {
+                    log(`✓ JS file accessible: ${jsPath}`, 'success');
+                } else {
+                    log(`✗ JS file not found: ${jsPath} (${res.status})`, 'error');
+                }
+            })
+            .catch(err => {
+                log(`✗ JS fetch error: ${err.message}`, 'error');
+            });
+        
+        // Test 4: Console errors
+        window.addEventListener('error', (e) => {
+            log(`✗ Runtime error: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+        
+        // Test 5: Check root element
+        setTimeout(() => {
+            const root = document.getElementById('root');
+            if (root) {
+                log('✓ Root element exists', 'success');
+                log(`Root innerHTML length: ${root.innerHTML.length}`, 'info');
+            } else {
+                log('✗ Root element not found', 'error');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
