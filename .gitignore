@@ -1,0 +1,20 @@
+# node
+node_modules/
+
+# build
+lib/
+cjs/
+esm/
+dist/
+
+# test coverage
+coverage/
+.vitest/
+
+
+# OS
+.DS_Store
+Thumbs.db
+
+
+devdocs/
