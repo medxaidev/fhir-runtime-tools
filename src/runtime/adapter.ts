@@ -1,5 +1,6 @@
-import { parseFhirJson, serializeToFhirJson } from 'fhir-runtime';
-import type { ParseResult } from 'fhir-runtime';
+import { parseFhirJson, serializeToFhirJson, StructureValidator, evalFhirPath } from 'fhir-runtime';
+import type { ParseResult, Resource } from 'fhir-runtime';
+import { getProfile } from './profiles';
 
 // ── Types ─────────────────────────────────────
 
@@ -63,23 +64,57 @@ export function parseResource(json: string): AdapterParseResult {
   }
 }
 
-// ── Validate Resource (stub — STAGE-2) ────────
+// ── Validate Resource ─────────────────────────
 
-export function validateResource(_json: string, _profileUrl?: string): AdapterValidationResult {
-  return {
-    valid: false,
-    issues: [],
-    error: 'Validation not yet implemented (STAGE-2)',
-  };
+export async function validateResource(json: string): Promise<AdapterValidationResult> {
+  try {
+    const parsed = JSON.parse(json);
+    const resourceType = parsed?.resourceType;
+    if (!resourceType) {
+      return { valid: false, issues: [{ severity: 'error', code: 'invalid', message: 'Missing resourceType field', path: '' }] };
+    }
+
+    const profile = await getProfile(resourceType);
+    if (!profile) {
+      return { valid: false, issues: [{ severity: 'error', code: 'not-supported', message: `No profile found for resource type: ${resourceType}`, path: '' }] };
+    }
+
+    const validator = new StructureValidator();
+    const result = validator.validate(parsed as Resource, profile);
+
+    return {
+      valid: result.valid,
+      issues: result.issues.map((i) => ({
+        severity: i.severity,
+        code: String(i.code),
+        message: i.message,
+        path: i.path ?? '',
+      })),
+    };
+  } catch (e) {
+    return {
+      valid: false,
+      issues: [{ severity: 'error', code: 'exception', message: e instanceof Error ? e.message : 'Validation failed', path: '' }],
+    };
+  }
 }
 
-// ── Evaluate FHIRPath (stub — STAGE-2) ────────
+// ── Evaluate FHIRPath ─────────────────────────
 
-export function evaluateFHIRPath(_json: string, _expression: string): AdapterEvalResult {
-  return {
-    success: false,
-    error: 'FHIRPath evaluation not yet implemented (STAGE-2)',
-  };
+export function evaluateFHIRPath(json: string, expression: string): AdapterEvalResult {
+  try {
+    if (!expression.trim()) {
+      return { success: false, error: 'Expression is empty' };
+    }
+    const parsed = JSON.parse(json);
+    const result = evalFhirPath(expression, parsed);
+    return { success: true, result };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'FHIRPath evaluation failed',
+    };
+  }
 }
 
 // ── Inspect Profile (stub — STAGE-3) ──────────
