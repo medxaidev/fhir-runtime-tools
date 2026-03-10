@@ -31,10 +31,10 @@
     "newLine": "lf",
     "paths": {
       "@prismui/core": [
-        "../../packages/core/src/index.ts"
+        "./node_modules/@prismui/core/dist/index.d.ts"
       ],
       "@prismui/react": [
-        "../../packages/react/src/index.ts"
+        "./node_modules/@prismui/react/dist/index.d.ts"
       ]
     }
   },

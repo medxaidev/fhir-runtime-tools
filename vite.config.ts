@@ -1,19 +1,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  base: '/prismui/dashboard/',
+  base: '/',
   resolve: {
     alias: {
-      react: path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
-      'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime.js'),
-      'react/jsx-dev-runtime': path.resolve(__dirname, './node_modules/react/jsx-dev-runtime.js'),
-      '@prismui/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
-      '@prismui/react': path.resolve(__dirname, '../../packages/react/src/index.ts'),
+      '@prismui/react': path.resolve(__dirname, 'node_modules/@prismui/react/dist/esm/index.mjs'),
+      '@prismui/core': path.resolve(__dirname, 'node_modules/@prismui/core/dist/esm/index.mjs'),
     },
+  },
+  optimizeDeps: {
+    include: ['@prismui/core', '@prismui/react', 'fhir-runtime'],
   },
   server: {
     port: 3000,
