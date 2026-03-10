@@ -10,14 +10,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extract-r4": "node scripts/extract-r4-definitions.mjs"
   },
   "dependencies": {
-    "fhir-runtime": "0.7.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "@monaco-editor/react": "^4.7.0",
     "@prismui/core": "0.2.0",
-    "@prismui/react": "0.2.0"
+    "@prismui/react": "0.2.0",
+    "fhir-runtime": "^0.7.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@types/react": "19.2.7",

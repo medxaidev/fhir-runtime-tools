@@ -87,6 +87,35 @@ export const EXAMPLE_OBSERVATION = `{
   }
 }`;
 
+export const EXAMPLE_ENCOUNTER = `{
+  "resourceType": "Encounter",
+  "id": "example-encounter",
+  "status": "finished",
+  "class": {
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+    "code": "AMB",
+    "display": "ambulatory"
+  },
+  "type": [
+    {
+      "coding": [
+        {
+          "system": "http://snomed.info/sct",
+          "code": "270427003",
+          "display": "Patient-initiated encounter"
+        }
+      ]
+    }
+  ],
+  "subject": {
+    "reference": "Patient/example-patient"
+  },
+  "period": {
+    "start": "2024-01-15T09:00:00Z",
+    "end": "2024-01-15T10:30:00Z"
+  }
+}`;
+
 export const EXAMPLE_INVALID_RESOURCE = `{
   "resourceType": "Patient",
   "id": "invalid-example",
@@ -105,6 +134,7 @@ export interface ExampleEntry {
 export const EXAMPLES: ExampleEntry[] = [
   { label: 'Patient', description: 'Valid Patient resource with demographics', json: EXAMPLE_PATIENT },
   { label: 'Observation', description: 'Heart rate vital sign observation', json: EXAMPLE_OBSERVATION },
+  { label: 'Encounter', description: 'Ambulatory encounter example', json: EXAMPLE_ENCOUNTER },
   { label: 'Invalid Patient', description: 'Patient with intentional errors', json: EXAMPLE_INVALID_RESOURCE },
 ];
 

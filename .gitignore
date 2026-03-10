@@ -7,10 +7,12 @@ cjs/
 esm/
 dist/
 
+# generated FHIR data (rebuild with: node scripts/extract-r4-definitions.mjs)
+src/data/r4-profiles.json
+
 # test coverage
 coverage/
 .vitest/
-
 
 # OS
 .DS_Store

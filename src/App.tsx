@@ -20,12 +20,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'Validator',  label: 'Resource Validator', icon: '◎', section: 'Tools' },
-  { id: 'FHIRPath',   label: 'FHIRPath Lab',       icon: '⟡', section: 'Tools' },
-  { id: 'Profile',    label: 'Profile Explorer',   icon: '◈', section: 'Tools' },
-  { id: 'Resource',   label: 'Resource Lab',        icon: '▣', section: 'Tools' },
-  { id: 'Diff',       label: 'Resource Diff',       icon: '⊟', section: 'Tools' },
-  { id: 'Generator',  label: 'Resource Generator',  icon: '⊞', section: 'Tools' },
+  { id: 'Validator', label: 'Resource Validator', icon: '◎', section: 'Tools' },
+  { id: 'FHIRPath', label: 'FHIRPath Lab', icon: '⟡', section: 'Tools' },
+  { id: 'Profile', label: 'Profile Explorer', icon: '◈', section: 'Tools' },
+  { id: 'Resource', label: 'Resource Lab', icon: '▣', section: 'Tools' },
+  { id: 'Diff', label: 'Resource Diff', icon: '⊟', section: 'Tools' },
+  { id: 'Generator', label: 'Resource Generator', icon: '⊞', section: 'Tools' },
 ];
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
@@ -37,11 +37,16 @@ const PAGE_MAP: Record<string, React.ComponentType> = {
   Generator: GeneratorPage,
 };
 
+// ── Pages that need full-bleed (no padding) ────
+const FULL_BLEED_PAGES = new Set(['Validator']);
+
 // ── Content Router ─────────────────────────────
 function ContentRouter() {
   const { currentPage } = usePage();
-  const Component = PAGE_MAP[currentPage ?? 'Validator'] ?? ValidatorPage;
-  return <Component />;
+  const page = currentPage ?? 'Validator';
+  const Component = PAGE_MAP[page] ?? ValidatorPage;
+  const isFullBleed = FULL_BLEED_PAGES.has(page);
+  return isFullBleed ? <Component /> : <div className="shell-main--padded"><Component /></div>;
 }
 
 // ── Sidebar ────────────────────────────────────
@@ -90,7 +95,7 @@ function Header() {
       <span className="shell-header__badge">v0.1.0</span>
       <span className="shell-header__spacer" />
       <div className="shell-header__meta">
-        <span className="shell-header__meta-item">fhir-runtime v0.7</span>
+        <span className="shell-header__meta-item">fhir-runtime v0.7.1</span>
         <span className="shell-header__meta-item">state v{state.version}</span>
       </div>
     </header>
