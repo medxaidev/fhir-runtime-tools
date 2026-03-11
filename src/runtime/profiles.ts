@@ -14,6 +14,7 @@ let loadPromise: Promise<void> | null = null;
 
 // ── US Core ──────────────────────────────────
 const usCoreProfileCache = new Map<string, CanonicalProfile>();
+const rawUsCoreSDCache = new Map<string, Record<string, unknown>>();
 const usCoreProfileNames: string[] = [];
 let usCoreLoaded = false;
 let usCoreLoadPromise: Promise<void> | null = null;
@@ -65,6 +66,7 @@ async function loadUSCoreProfiles(): Promise<void> {
       for (const [name, sd] of Object.entries(sdMap)) {
         try {
           const sdObj = sd as Record<string, unknown>;
+          rawUsCoreSDCache.set(name, sdObj);
           const canonical = buildCanonicalProfile(sdObj as unknown as Parameters<typeof buildCanonicalProfile>[0]);
           usCoreProfileCache.set(name, canonical);
           usCoreProfileNames.push(name);
@@ -134,4 +136,9 @@ export async function getUSCoreProfileNames(): Promise<string[]> {
 export async function getUSCoreProfile(name: string): Promise<CanonicalProfile | undefined> {
   await loadUSCoreProfiles();
   return usCoreProfileCache.get(name);
+}
+
+export async function getRawUSCoreSD(name: string): Promise<Record<string, unknown> | undefined> {
+  await loadUSCoreProfiles();
+  return rawUsCoreSDCache.get(name);
 }

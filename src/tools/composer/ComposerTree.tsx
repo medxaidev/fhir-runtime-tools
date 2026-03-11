@@ -13,11 +13,19 @@ import {
   isArrayElement,
   getArrayLength,
 } from './instance-tree-engine';
+import {
+  isSlicedElement,
+  getSlices,
+  countSliceInstances,
+  matchSlice,
+} from './slice-engine';
+import type { SlicedElementInfo, SliceDefinition } from './slice-engine';
 
 interface ComposerTreeProps {
   profile: CanonicalProfile | null;
   resource: Record<string, unknown>;
   selectedPath: string | null;
+  slicingMap?: Map<string, SlicedElementInfo>;
   onSelect: (element: CanonicalElement) => void;
   onSelectInstance?: (element: CanonicalElement, arrayIndex: number) => void;
   onAdd: (element: CanonicalElement) => void;
@@ -25,6 +33,7 @@ interface ComposerTreeProps {
   onChoiceSwitch?: (element: CanonicalElement, typeCode: string) => void;
   onAddArrayItem?: (element: CanonicalElement) => void;
   onRemoveArrayItem?: (element: CanonicalElement, index: number) => void;
+  onAddSliceItem?: (element: CanonicalElement, slice: SliceDefinition) => void;
 }
 
 function getElementName(path: string): string {
@@ -178,6 +187,144 @@ function BackboneInstanceChildren({
   );
 }
 
+// ── Slice Children ──────────────────────────
+function SliceChildren({
+  element,
+  resource,
+  depth,
+  selectedPath,
+  slicingMap,
+  onSelectInstance,
+  onAddSliceItem,
+  onRemoveArrayItem,
+}: {
+  element: CanonicalElement;
+  resource: Record<string, unknown>;
+  depth: number;
+  selectedPath: string | null;
+  slicingMap: Map<string, SlicedElementInfo>;
+  onSelectInstance?: (el: CanonicalElement, index: number) => void;
+  onAddSliceItem?: (el: CanonicalElement, slice: SliceDefinition) => void;
+  onRemoveArrayItem?: (el: CanonicalElement, index: number) => void;
+}) {
+  const jsonKey = getElementName(element.path);
+  const slicedInfo = slicingMap.get(element.path);
+  if (!slicedInfo) return null;
+
+  const slices = getSlices(element.path, slicingMap);
+  const instanceCounts = countSliceInstances(resource, slicedInfo);
+  const arr = resource[jsonKey];
+  const items = Array.isArray(arr) ? (arr as Record<string, unknown>[]) : [];
+
+  return (
+    <div className="composer-tree-node__children">
+      {slices.map((slice) => {
+        const count = instanceCounts.get(slice.sliceName) ?? 0;
+        const isSliceRequired = slice.min > 0;
+        return (
+          <div key={slice.sliceName} className="composer-tree-node">
+            <div
+              className="composer-tree-node__row composer-tree-node__row--slice"
+              style={{ paddingLeft: (depth + 1) * 16 + 8 }}
+            >
+              <span className="composer-tree-node__arrow" />
+              <span className="composer-tree-node__slice-icon">🧩</span>
+              <span className={`composer-tree-node__name ${isSliceRequired ? 'composer-tree-node__name--required' : ''}`}>
+                :{slice.sliceName}
+              </span>
+              {isSliceRequired && <span className="composer-tree-node__star">★</span>}
+              <span className="composer-tree-node__slice-count">{count > 0 ? `[${count}]` : ''}</span>
+              <span className="composer-tree-node__meta">
+                <span className="composer-tree-node__cardinality">
+                  {slice.min}..{slice.max}
+                </span>
+              </span>
+              <span className="composer-tree-node__actions">
+                <button
+                  className="composer-tree-node__btn composer-tree-node__btn--add"
+                  onClick={(e) => { e.stopPropagation(); onAddSliceItem?.(element, slice); }}
+                  title={`Add ${slice.sliceName}`}
+                >+</button>
+              </span>
+            </div>
+            {/* Show instances that match this slice */}
+            {items.map((item, idx) => {
+              // Simple check: see if this item's index maps to this slice
+              const matched = slicedInfo
+                ? matchSlice(item, slicedInfo) === slice.sliceName
+                : false;
+              if (!matched) return null;
+              const instancePath = `${element.path}:${slice.sliceName}[${idx}]`;
+              const isInstanceSelected = selectedPath === instancePath;
+              const childCount = typeof item === 'object' && item !== null ? Object.keys(item).length : 0;
+              return (
+                <div key={`${slice.sliceName}-${idx}`} className="composer-tree-node">
+                  <div
+                    className={`composer-tree-node__row composer-tree-node__row--instance ${isInstanceSelected ? 'composer-tree-node__row--selected' : ''}`}
+                    style={{ paddingLeft: (depth + 2) * 16 + 8 }}
+                    onClick={() => onSelectInstance?.(element, idx)}
+                  >
+                    <span className="composer-tree-node__arrow" />
+                    <span className="composer-tree-node__instance-icon">⧉</span>
+                    <span className="composer-tree-node__name">
+                      {jsonKey}[{idx}]
+                    </span>
+                    <span className="composer-tree-node__preview">{`{${childCount} fields}`}</span>
+                    <span className="composer-tree-node__actions">
+                      <button
+                        className="composer-tree-node__btn composer-tree-node__btn--remove"
+                        onClick={(e) => { e.stopPropagation(); onRemoveArrayItem?.(element, idx); }}
+                        title={`Remove ${jsonKey}[${idx}]`}
+                      >×</button>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      {/* Unmatched items (open slicing allows extra items) */}
+      {slicedInfo.slicing.rules === 'open' && items.length > 0 && (() => {
+        const unmatchedIndices: number[] = [];
+        for (let i = 0; i < items.length; i++) {
+          if (!matchSlice(items[i] as Record<string, unknown>, slicedInfo)) {
+            unmatchedIndices.push(i);
+          }
+        }
+        if (unmatchedIndices.length === 0) return null;
+        return unmatchedIndices.map((idx) => {
+          const instancePath = `${element.path}[${idx}]`;
+          const isInstanceSelected = selectedPath === instancePath;
+          const item = items[idx];
+          const childCount = typeof item === 'object' && item !== null ? Object.keys(item).length : 0;
+          return (
+            <div key={`unmatched-${idx}`} className="composer-tree-node">
+              <div
+                className={`composer-tree-node__row composer-tree-node__row--instance ${isInstanceSelected ? 'composer-tree-node__row--selected' : ''}`}
+                style={{ paddingLeft: (depth + 1) * 16 + 8 }}
+                onClick={() => onSelectInstance?.(element, idx)}
+              >
+                <span className="composer-tree-node__arrow" />
+                <span className="composer-tree-node__instance-icon">⧉</span>
+                <span className="composer-tree-node__name">{jsonKey}[{idx}]</span>
+                <span className="composer-tree-node__preview">{`{${childCount} fields}`}</span>
+                <span className="composer-tree-node__actions">
+                  <button
+                    className="composer-tree-node__btn composer-tree-node__btn--remove"
+                    onClick={(e) => { e.stopPropagation(); onRemoveArrayItem?.(element, idx); }}
+                    title={`Remove ${jsonKey}[${idx}]`}
+                  >×</button>
+                </span>
+              </div>
+            </div>
+          );
+        });
+      })()}
+    </div>
+  );
+}
+
 // ── Tree Node ────────────────────────────────
 function TreeNode({
   node,
@@ -185,6 +332,7 @@ function TreeNode({
   resource,
   selectedPath,
   expandedPaths,
+  slicingMap,
   onToggle,
   onSelect,
   onSelectInstance,
@@ -193,12 +341,14 @@ function TreeNode({
   onChoiceSwitch,
   onAddArrayItem,
   onRemoveArrayItem,
+  onAddSliceItem,
 }: {
   node: ElementNode;
   profile: CanonicalProfile | null;
   resource: Record<string, unknown>;
   selectedPath: string | null;
   expandedPaths: Set<string>;
+  slicingMap?: Map<string, SlicedElementInfo>;
   onToggle: (path: string) => void;
   onSelect: (el: CanonicalElement) => void;
   onSelectInstance?: (el: CanonicalElement, index: number) => void;
@@ -207,6 +357,7 @@ function TreeNode({
   onChoiceSwitch?: (el: CanonicalElement, typeCode: string) => void;
   onAddArrayItem?: (el: CanonicalElement) => void;
   onRemoveArrayItem?: (el: CanonicalElement, index: number) => void;
+  onAddSliceItem?: (el: CanonicalElement, slice: SliceDefinition) => void;
 }) {
   const name = getElementName(node.element.path);
   const hasChildren = node.children.length > 0;
@@ -217,9 +368,10 @@ function TreeNode({
   const isBackbone = isBackboneElement(node.element);
   const isArray = isArrayElement(node.element);
   const isBackboneArray = isBackbone && isArray;
+  const isSliced = slicingMap ? isSlicedElement(node.element.path, slicingMap) : false;
   const isPresent = hasValueInResource(resource, node.element);
-  const preview = isBackboneArray ? null : getPreviewValue(resource, node.element);
-  const hasExpandable = hasChildren || isChoice || isBackboneArray;
+  const preview = (isBackboneArray || isSliced) ? null : getPreviewValue(resource, node.element);
+  const hasExpandable = hasChildren || isChoice || isBackboneArray || isSliced;
 
   // For backbone arrays, show instance count as preview
   const arrayCount = isBackboneArray ? getArrayLength(resource, name) : 0;
@@ -242,7 +394,8 @@ function TreeNode({
         </span>
         {isRequired && <span className="composer-tree-node__star">★</span>}
         {isChoice && <span className="composer-tree-node__choice-badge">[x]</span>}
-        {isBackboneArray && <span className="composer-tree-node__backbone-badge">⧉ {arrayCount}</span>}
+        {isBackboneArray && !isSliced && <span className="composer-tree-node__backbone-badge">⧉ {arrayCount}</span>}
+        {isSliced && <span className="composer-tree-node__slice-badge">🧩 sliced</span>}
         {isPresent && preview && (
           <span className="composer-tree-node__preview">{preview}</span>
         )}
@@ -252,14 +405,14 @@ function TreeNode({
           </span>
         </span>
         <span className="composer-tree-node__actions">
-          {!isPresent && !isChoice && !isBackboneArray && (
+          {!isPresent && !isChoice && !isBackboneArray && !isSliced && (
             <button
               className="composer-tree-node__btn composer-tree-node__btn--add"
               onClick={(e) => { e.stopPropagation(); onAdd(node.element); }}
               title="Add element"
             >+</button>
           )}
-          {isPresent && !isRequired && !isBackboneArray && (
+          {isPresent && !isRequired && !isBackboneArray && !isSliced && (
             <button
               className="composer-tree-node__btn composer-tree-node__btn--remove"
               onClick={(e) => { e.stopPropagation(); onRemove(node.element.path); }}
@@ -276,7 +429,7 @@ function TreeNode({
           onChoiceSwitch={onChoiceSwitch}
         />
       )}
-      {isBackboneArray && isExpanded && (
+      {isBackboneArray && !isSliced && isExpanded && (
         <BackboneInstanceChildren
           element={node.element}
           profile={profile}
@@ -288,7 +441,19 @@ function TreeNode({
           onRemoveArrayItem={onRemoveArrayItem}
         />
       )}
-      {hasChildren && !isBackboneArray && isExpanded && (
+      {isSliced && isExpanded && slicingMap && (
+        <SliceChildren
+          element={node.element}
+          resource={resource}
+          depth={node.depth}
+          selectedPath={selectedPath}
+          slicingMap={slicingMap}
+          onSelectInstance={onSelectInstance}
+          onAddSliceItem={onAddSliceItem}
+          onRemoveArrayItem={onRemoveArrayItem}
+        />
+      )}
+      {hasChildren && !isBackboneArray && !isSliced && isExpanded && (
         <div className="composer-tree-node__children">
           {node.children.map((child) => (
             <TreeNode
@@ -298,6 +463,7 @@ function TreeNode({
               resource={resource}
               selectedPath={selectedPath}
               expandedPaths={expandedPaths}
+              slicingMap={slicingMap}
               onToggle={onToggle}
               onSelect={onSelect}
               onSelectInstance={onSelectInstance}
@@ -306,6 +472,7 @@ function TreeNode({
               onChoiceSwitch={onChoiceSwitch}
               onAddArrayItem={onAddArrayItem}
               onRemoveArrayItem={onRemoveArrayItem}
+              onAddSliceItem={onAddSliceItem}
             />
           ))}
         </div>
@@ -315,7 +482,7 @@ function TreeNode({
 }
 
 // ── Composer Tree ────────────────────────────
-export function ComposerTree({ profile, resource, selectedPath, onSelect, onSelectInstance, onAdd, onRemove, onChoiceSwitch, onAddArrayItem, onRemoveArrayItem }: ComposerTreeProps) {
+export function ComposerTree({ profile, resource, selectedPath, slicingMap, onSelect, onSelectInstance, onAdd, onRemove, onChoiceSwitch, onAddArrayItem, onRemoveArrayItem, onAddSliceItem }: ComposerTreeProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
   const tree = useMemo(() => {
@@ -368,6 +535,7 @@ export function ComposerTree({ profile, resource, selectedPath, onSelect, onSele
             resource={resource}
             selectedPath={selectedPath}
             expandedPaths={expandedPaths}
+            slicingMap={slicingMap}
             onToggle={handleToggle}
             onSelect={onSelect}
             onSelectInstance={onSelectInstance}
@@ -376,6 +544,7 @@ export function ComposerTree({ profile, resource, selectedPath, onSelect, onSele
             onChoiceSwitch={onChoiceSwitch}
             onAddArrayItem={onAddArrayItem}
             onRemoveArrayItem={onRemoveArrayItem}
+            onAddSliceItem={onAddSliceItem}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNotification } from '@prismui/react';
 import type { CanonicalProfile, CanonicalElement } from 'fhir-runtime';
-import { getResourceTypeNames, getProfile, getUSCoreProfileNames, getUSCoreProfile } from '../../runtime/profiles';
+import { getResourceTypeNames, getProfile, getUSCoreProfileNames, getUSCoreProfile, getRawStructureDefinition, getRawUSCoreSD } from '../../runtime/profiles';
 import { PackageSelector } from '../validator/PackageSelector';
 import { validateResource } from '../../runtime/adapter';
 import type { AdapterValidationResult } from '../../runtime/adapter';
@@ -26,6 +26,8 @@ import {
   setDeepValue,
 } from './instance-tree-engine';
 import type { JsonPathSegment } from './instance-tree-engine';
+import { extractSlicing, generateSliceSkeleton } from './slice-engine';
+import type { SlicedElementInfo } from './slice-engine';
 import type { editor } from 'monaco-editor';
 
 // ── Path utilities ───────────────────────────
@@ -114,6 +116,7 @@ export function ComposerWorkspace() {
   const [validationResult, setValidationResult] = useState<AdapterValidationResult | null>(null);
   const [validating, setValidating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [slicingMap, setSlicingMap] = useState<Map<string, SlicedElementInfo>>(new Map());
 
   // Prevent sync loops
   const updatingFromJson = useRef(false);
@@ -140,14 +143,21 @@ export function ComposerWorkspace() {
   useEffect(() => {
     if (!selectedType) {
       setProfile(null);
+      setSlicingMap(new Map());
       return;
     }
-    const loadFn = currentPackage === 'us-core' ? getUSCoreProfile : getProfile;
-    loadFn(selectedType).then((p) => {
+    const loadProfileFn = currentPackage === 'us-core' ? getUSCoreProfile : getProfile;
+    const loadRawFn = currentPackage === 'us-core' ? getRawUSCoreSD : getRawStructureDefinition;
+    Promise.all([loadProfileFn(selectedType), loadRawFn(selectedType)]).then(([p, rawSD]) => {
       if (p) {
         setProfile(p);
         const skeleton = generateSkeleton(p);
         updateResourceObject(skeleton);
+      }
+      if (rawSD) {
+        setSlicingMap(extractSlicing(rawSD));
+      } else {
+        setSlicingMap(new Map());
       }
     });
     setSelectedPath(null);
@@ -292,6 +302,19 @@ export function ComposerWorkspace() {
     }
     show({ type: 'info', message: `Removed ${jsonKey}[${index}].` });
   }, [resource, selectedPath, updateResourceObject, show]);
+
+  // ── Slice: add item with discriminator values ─
+  const handleAddSliceItem = useCallback((element: CanonicalElement, slice: import('./slice-engine').SliceDefinition) => {
+    const jsonKey = element.path.split('.').pop() ?? '';
+    const skeleton = generateSliceSkeleton(slice);
+    const clone = JSON.parse(JSON.stringify(resource));
+    if (!Array.isArray(clone[jsonKey])) {
+      clone[jsonKey] = [];
+    }
+    (clone[jsonKey] as unknown[]).push(skeleton);
+    updateResourceObject(clone);
+    show({ type: 'success', message: `Added ${jsonKey}:${slice.sliceName}.` });
+  }, [resource, updateResourceObject, show]);
 
   // ── Backbone instance form change ─────────
   const handleInstanceFormChange = useCallback((elementPath: string, value: unknown) => {
@@ -487,6 +510,7 @@ export function ComposerWorkspace() {
             profile={profile}
             resource={resource}
             selectedPath={selectedPath}
+            slicingMap={slicingMap}
             onSelect={handleTreeSelect}
             onSelectInstance={handleSelectInstance}
             onAdd={handleAddElement}
@@ -494,6 +518,7 @@ export function ComposerWorkspace() {
             onChoiceSwitch={handleChoiceSwitch}
             onAddArrayItem={handleAddArrayItem}
             onRemoveArrayItem={handleRemoveArrayItem}
+            onAddSliceItem={handleAddSliceItem}
           />
         </div>
 
@@ -505,6 +530,7 @@ export function ComposerWorkspace() {
             value={selectedValue}
             resource={resource}
             instanceIndex={selectedInstanceIndex}
+            slicingMap={slicingMap}
             onChange={selectedInstanceIndex !== null ? handleInstanceFormChange : handleFormChange}
             onChoiceSwitch={handleChoiceSwitch}
           />

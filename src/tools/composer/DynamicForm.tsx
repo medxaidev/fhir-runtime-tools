@@ -9,6 +9,12 @@ import {
   isBackboneElement,
   getBackboneChildren,
 } from './instance-tree-engine';
+import {
+  isSlicedElement,
+  matchSlice,
+  getSlicingInfo,
+} from './slice-engine';
+import type { SlicedElementInfo } from './slice-engine';
 
 interface DynamicFormProps {
   element: CanonicalElement | null;
@@ -16,6 +22,7 @@ interface DynamicFormProps {
   value: unknown;
   resource: Record<string, unknown>;
   instanceIndex?: number | null;
+  slicingMap?: Map<string, SlicedElementInfo>;
   onChange: (elementPath: string, value: unknown) => void;
   onChoiceSwitch?: (element: CanonicalElement, typeCode: string) => void;
 }
@@ -244,7 +251,7 @@ function ArrayField({
 
 // ── Main Dynamic Form ───────────────────────
 
-export function DynamicForm({ element, profile, value, resource, instanceIndex, onChange, onChoiceSwitch }: DynamicFormProps) {
+export function DynamicForm({ element, profile, value, resource, instanceIndex, slicingMap, onChange, onChoiceSwitch }: DynamicFormProps) {
   if (!element) {
     return (
       <div className="composer-form composer-form--empty">
@@ -264,7 +271,14 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
   const isChoice = isChoiceType(element);
   const isBackbone = isBackboneElement(element);
   const isBackboneInstance = isBackbone && isArray && instanceIndex !== null && instanceIndex !== undefined;
+  const isSliced = slicingMap ? isSlicedElement(element.path, slicingMap) : false;
   const bindingVS = element.binding?.valueSetUrl ?? undefined;
+
+  // Slice info for the current instance
+  const sliceInfo = isSliced && slicingMap ? getSlicingInfo(element.path, slicingMap) : null;
+  const matchedSliceName = isSliced && slicingMap && instanceIndex !== null && typeof value === 'object' && value !== null
+    ? matchSlice(value as Record<string, unknown>, slicingMap.get(element.path)!)
+    : null;
 
   const handleChange = useCallback((newVal: unknown) => {
     onChange(element.path, newVal);
@@ -302,6 +316,7 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
         ) : (
           <span className="composer-form__element-type">{typeCode}</span>
         )}
+        {isSliced && <span className="composer-form__slice-badge">🧩 sliced</span>}
         {isRequired && <span className="composer-form__required-badge">Required</span>}
         {isArray && !isBackboneInstance && <span className="composer-form__array-badge">Array</span>}
       </div>
@@ -323,6 +338,20 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
           <div className="composer-form__info-row">
             <span className="composer-form__info-label">Active Type</span>
             <span className="composer-form__info-value">{choiceInfo.activeType}</span>
+          </div>
+        )}
+        {matchedSliceName && (
+          <div className="composer-form__info-row">
+            <span className="composer-form__info-label">Slice</span>
+            <span className="composer-form__info-value">:{matchedSliceName}</span>
+          </div>
+        )}
+        {sliceInfo && (
+          <div className="composer-form__slice-info">
+            <span className="composer-form__slice-info-label">Slicing</span>
+            <span className="composer-form__slice-info-value">
+              discriminator: {sliceInfo.discriminator.map(d => `${d.type}@${d.path}`).join(', ')} | rules: {sliceInfo.rules}
+            </span>
           </div>
         )}
       </div>

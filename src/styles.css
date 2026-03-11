@@ -2204,3 +2204,63 @@ body {
   padding: 1px 6px;
   border-radius: 4px;
 }
+
+/* ── Slice ───────────────────────── */
+.composer-tree-node__slice-badge {
+  font-size: 9px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 0 5px;
+  border-radius: 3px;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+
+.composer-tree-node__row--slice {
+  cursor: default;
+}
+
+.composer-tree-node__slice-icon {
+  font-size: 10px;
+  margin-right: 3px;
+  flex-shrink: 0;
+}
+
+.composer-tree-node__slice-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  margin-left: 4px;
+}
+
+.composer-form__slice-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.composer-form__slice-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  background: #f0f9ff;
+  font-size: 11px;
+}
+
+.composer-form__slice-info-label {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.composer-form__slice-info-value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
