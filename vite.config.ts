@@ -4,10 +4,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const base = process.env.GITHUB_PAGES ? '/fhir-runtime-tools/' : '/';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/fhir-runtime-tools/',
+  base,
   publicDir: 'public',
   resolve: {
     alias: [
@@ -41,7 +42,7 @@ export default defineConfig({
   },
   experimental: {
     renderBuiltUrl(filename, { hostType }) {
-      return '/fhir-runtime-tools/' + filename;
+      return base + filename;
     },
   },
   server: {
