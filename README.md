@@ -1,6 +1,6 @@
 # FHIR Runtime Tools
 
-🔗 **Live Demo**: [https://medxai.github.io/fhir-runtime-tools/](https://medxai.github.io/fhir-runtime-tools/)
+🔗 **Live Demo**: [https://medxaidev.github.io/fhir-runtime-tools/](https://medxaidev.github.io/fhir-runtime-tools/)
 
 A browser-based developer toolkit for testing and debugging [fhir-runtime](https://github.com/your-org/fhir-runtime). This interactive web application provides a comprehensive suite of tools for working with FHIR resources, profiles, and validation.
 
@@ -90,6 +90,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Links
 
 - [Homepage](https://medxai.dev)
-- [Live Demo](https://medxai.github.io/fhir-runtime-tools/)
+- [Live Demo](https://medxaidev.github.io/fhir-runtime-tools/)
 - [fhir-runtime Documentation](https://github.com/your-org/fhir-runtime)
 - [PrismUI Documentation](https://github.com/your-org/prismui)
