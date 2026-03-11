@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { PrismUIProvider } from '@prismui/react';
 import { usePage, useRuntimeState, useNotification } from '@prismui/react';
 import { runtime } from './setup';
@@ -6,6 +6,7 @@ import './styles.css';
 
 import { ValidatorPage } from './tools/validator';
 import { ComposerPage } from './tools/composer';
+import { ExplorerPage } from './tools/explorer';
 
 // ── Route definitions ──────────────────────────
 interface NavItem {
@@ -18,15 +19,17 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'Validator', label: 'Resource Validator', icon: '◎', section: 'Tools' },
   { id: 'Composer', label: 'Resource Composer', icon: '✎', section: 'Tools' },
+  { id: 'Explorer', label: 'Instance Explorer', icon: '◈', section: 'Tools' },
 ];
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
   Validator: ValidatorPage,
   Composer: ComposerPage,
+  Explorer: ExplorerPage,
 };
 
 // ── Pages that need full-bleed (no padding) ────
-const FULL_BLEED_PAGES = new Set(['Validator', 'Composer']);
+const FULL_BLEED_PAGES = new Set(['Validator', 'Composer', 'Explorer']);
 
 // ── Content Router ─────────────────────────────
 function ContentRouter() {
@@ -90,8 +93,82 @@ function Header() {
   );
 }
 
+// ── Toast Notifications ─────────────────────────
+function NotificationToasts() {
+  const { notifications, dismiss } = useNotification();
+
+  // Show only the latest 5 notifications
+  const visible = notifications.slice(-5);
+
+  // Auto-dismiss after 4 seconds
+  useEffect(() => {
+    if (visible.length === 0) return;
+    const timers = visible.map((n) => {
+      const age = Date.now() - n.timestamp;
+      const remaining = Math.max(0, (n.autoDismissMs ?? 4000) - age);
+      return setTimeout(() => dismiss(n.id), remaining);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [visible, dismiss]);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="notification-toasts">
+      {visible.map((n) => (
+        <div key={n.id} className={`notification-toast notification-toast--${n.type}`}>
+          <span className="notification-toast__icon">
+            {n.type === 'success' ? '✓' : n.type === 'error' ? '✕' : n.type === 'warning' ? '⚠' : 'ℹ'}
+          </span>
+          <span className="notification-toast__message">{n.message}</span>
+          <button className="notification-toast__close" onClick={() => dismiss(n.id)}>×</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Notification Panel (toggle from status bar) ──
+function NotificationPanel({ onClose }: { onClose: () => void }) {
+  const { notifications, dismiss, dismissAll } = useNotification();
+
+  return (
+    <div className="notification-panel">
+      <div className="notification-panel__header">
+        <span className="notification-panel__title">Notifications ({notifications.length})</span>
+        <div className="notification-panel__actions">
+          {notifications.length > 0 && (
+            <button className="btn btn--small" onClick={dismissAll}>Clear All</button>
+          )}
+          <button className="notification-panel__close" onClick={onClose}>×</button>
+        </div>
+      </div>
+      <div className="notification-panel__body">
+        {notifications.length === 0 ? (
+          <div className="notification-panel__empty">No notifications</div>
+        ) : (
+          [...notifications].reverse().map((n) => (
+            <div key={n.id} className={`notification-panel__item notification-panel__item--${n.type}`}>
+              <span className="notification-panel__item-icon">
+                {n.type === 'success' ? '✓' : n.type === 'error' ? '✕' : n.type === 'warning' ? '⚠' : 'ℹ'}
+              </span>
+              <div className="notification-panel__item-body">
+                <span className="notification-panel__item-msg">{n.message}</span>
+                <span className="notification-panel__item-time">
+                  {new Date(n.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+              <button className="notification-panel__item-dismiss" onClick={() => dismiss(n.id)}>×</button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Status Bar ─────────────────────────────────
-function StatusBar() {
+function StatusBar({ onToggleNotifications }: { onToggleNotifications: () => void }) {
   const state = useRuntimeState();
   const { currentPage } = usePage();
   const { count: notifCount } = useNotification();
@@ -103,9 +180,9 @@ function StatusBar() {
       </span>
       <span className="shell-statusbar__item">Tool: {currentPage ?? '—'}</span>
       {notifCount > 0 && (
-        <span className="shell-statusbar__item">
-          <span className="shell-statusbar__dot shell-statusbar__dot--warning" /> {notifCount} notifications
-        </span>
+        <button className="shell-statusbar__item shell-statusbar__notif-btn" onClick={onToggleNotifications}>
+          <span className="shell-statusbar__dot shell-statusbar__dot--warning" /> {notifCount} notification{notifCount !== 1 ? 's' : ''}
+        </button>
       )}
       <span className="shell-statusbar__spacer" />
       <span className="shell-statusbar__item">v{state.version}</span>
@@ -129,6 +206,10 @@ function InitPage() {
 
 // ── App ────────────────────────────────────────
 export function App() {
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const toggleNotifPanel = useCallback(() => setShowNotifPanel((p) => !p), []);
+  const closeNotifPanel = useCallback(() => setShowNotifPanel(false), []);
+
   return (
     <PrismUIProvider runtime={runtime}>
       <InitPage />
@@ -138,8 +219,10 @@ export function App() {
         <main className="shell-main">
           <ContentRouter />
         </main>
-        <StatusBar />
+        <StatusBar onToggleNotifications={toggleNotifPanel} />
       </div>
+      <NotificationToasts />
+      {showNotifPanel && <NotificationPanel onClose={closeNotifPanel} />}
     </PrismUIProvider>
   );
 }
