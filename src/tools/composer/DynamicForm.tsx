@@ -11,6 +11,7 @@ import {
 } from './instance-tree-engine';
 import {
   isSlicedElement,
+  isExtensionSlicing,
   matchSlice,
   getSlicingInfo,
 } from './slice-engine';
@@ -76,6 +77,67 @@ function CodeField({ value, onChange, binding }: { value: string; onChange: (v: 
         placeholder="Enter code..."
       />
       {binding && <span className="composer-form__binding-hint">Binding: {binding}</span>}
+    </div>
+  );
+}
+
+// ── Reference Field ─────────────────────────
+
+function ReferenceField({
+  value,
+  element,
+  onChange,
+}: {
+  value: Record<string, unknown> | null;
+  element: CanonicalElement;
+  onChange: (updated: Record<string, unknown>) => void;
+}) {
+  const targetTypes = element.types
+    .filter(t => t.code === 'Reference')
+    .flatMap(t => (t as unknown as { targetProfile?: string[] }).targetProfile ?? [])
+    .map(url => url.split('/').pop() ?? url);
+
+  const ref = typeof value?.reference === 'string' ? value.reference : '';
+  const display = typeof value?.display === 'string' ? value.display : '';
+
+  return (
+    <div className="composer-form__reference">
+      {targetTypes.length > 0 && (
+        <div className="composer-form__ref-targets">
+          <span className="composer-form__ref-targets-label">Target:</span>
+          {targetTypes.map(t => (
+            <span key={t} className="composer-form__ref-target-chip">{t}</span>
+          ))}
+        </div>
+      )}
+      <div className="composer-form__ref-field">
+        <label className="composer-form__sub-label">reference</label>
+        <input
+          className="composer-form__input"
+          type="text"
+          value={ref}
+          onChange={(e) => onChange({ ...value, reference: e.target.value })}
+          placeholder={targetTypes.length > 0 ? `${targetTypes[0]}/...` : 'ResourceType/id'}
+        />
+      </div>
+      <div className="composer-form__ref-field">
+        <label className="composer-form__sub-label">display</label>
+        <input
+          className="composer-form__input"
+          type="text"
+          value={display}
+          onChange={(e) => {
+            const updated: Record<string, unknown> = { ...value, display: e.target.value };
+            if (!e.target.value) {
+              const { display: _d, ...rest } = updated;
+              onChange(rest);
+            } else {
+              onChange(updated);
+            }
+          }}
+          placeholder="Display name (optional)"
+        />
+      </div>
     </div>
   );
 }
@@ -272,6 +334,8 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
   const isBackbone = isBackboneElement(element);
   const isBackboneInstance = isBackbone && isArray && instanceIndex !== null && instanceIndex !== undefined;
   const isSliced = slicingMap ? isSlicedElement(element.path, slicingMap) : false;
+  const isExtSliced = isSliced ? isExtensionSlicing(element.path, slicingMap!) : false;
+  const isReference = element.types.some(t => t.code === 'Reference');
   const bindingVS = element.binding?.valueSetUrl ?? undefined;
 
   // Slice info for the current instance
@@ -316,7 +380,11 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
         ) : (
           <span className="composer-form__element-type">{typeCode}</span>
         )}
-        {isSliced && <span className="composer-form__slice-badge">🧩 sliced</span>}
+        {isSliced && (
+          <span className={isExtSliced ? 'composer-form__ext-badge' : 'composer-form__slice-badge'}>
+            {isExtSliced ? '🔗 ext' : '🧩 sliced'}
+          </span>
+        )}
         {isRequired && <span className="composer-form__required-badge">Required</span>}
         {isArray && !isBackboneInstance && <span className="composer-form__array-badge">Array</span>}
       </div>
@@ -428,6 +496,12 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
             resource={resource}
             onChoiceSwitch={onChoiceSwitch}
             onChange={handleChoiceValueChange}
+          />
+        ) : isReference && !isArray ? (
+          <ReferenceField
+            value={typeof value === 'object' && value !== null ? value as Record<string, unknown> : null}
+            element={element}
+            onChange={handleChange as (v: Record<string, unknown>) => void}
           />
         ) : value === undefined ? (
           <div className="composer-form__not-set">

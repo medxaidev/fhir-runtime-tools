@@ -30,6 +30,10 @@ export interface SliceDefinition {
   children: RawSliceChild[];
   /** Whether this slice is mustSupport */
   mustSupport: boolean;
+  /** For extension slices: the Extension profile URL */
+  extensionUrl?: string;
+  /** For extension slices: the Extension profile canonical */
+  extensionProfile?: string;
 }
 
 export interface RawSliceChild {
@@ -120,8 +124,6 @@ export function extractSlicing(rawSD: Record<string, unknown>): Map<string, Slic
   const slicingBases = new Map<string, { element: RawSDElement; slicing: SlicingInfo }>();
   for (const el of elements) {
     if (el.slicing?.discriminator) {
-      // Skip extension slicing (handled separately by FHIR infrastructure)
-      if (el.path.endsWith('.extension') || el.path.endsWith('.modifierExtension')) continue;
       slicingBases.set(el.path, {
         element: el,
         slicing: {
@@ -195,6 +197,22 @@ export function extractSlicing(rawSD: Record<string, unknown>): Map<string, Slic
         }
       }
 
+      // For extension slices, extract the profile URL from type[0].profile
+      let extensionUrl: string | undefined;
+      let extensionProfile: string | undefined;
+      if (basePath.endsWith('.extension') || basePath.endsWith('.modifierExtension')) {
+        const extType = el.type?.find(t => t.code === 'Extension');
+        if (extType?.profile?.[0]) {
+          extensionProfile = extType.profile[0];
+          // The url is used as discriminator value — extract from fixedValues or profile URL
+          extensionUrl = (fixedValues['url'] as string) ?? extType.profile[0];
+          // Ensure url is in fixedValues for discriminator matching
+          if (!fixedValues['url']) {
+            fixedValues['url'] = extensionUrl;
+          }
+        }
+      }
+
       slices.push({
         id: el.id,
         sliceName: el.sliceName,
@@ -204,6 +222,8 @@ export function extractSlicing(rawSD: Record<string, unknown>): Map<string, Slic
         fixedValues,
         children,
         mustSupport: el.mustSupport ?? false,
+        extensionUrl,
+        extensionProfile,
       });
     }
 
@@ -244,6 +264,12 @@ export function getSlicingInfo(basePath: string, slicingMap: Map<string, SlicedE
 export function generateSliceSkeleton(slice: SliceDefinition): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
 
+  // Extension slices: generate { url: "...", ... } structure
+  if (slice.extensionUrl) {
+    obj['url'] = slice.extensionUrl;
+    return obj;
+  }
+
   // Apply fixed/pattern values from discriminator
   for (const [key, value] of Object.entries(slice.fixedValues)) {
     if (key.includes('.')) {
@@ -254,6 +280,15 @@ export function generateSliceSkeleton(slice: SliceDefinition): Record<string, un
   }
 
   return obj;
+}
+
+/**
+ * Check if a sliced element is an extension slicing.
+ */
+export function isExtensionSlicing(basePath: string, slicingMap: Map<string, SlicedElementInfo>): boolean {
+  const info = slicingMap.get(basePath);
+  if (!info) return false;
+  return basePath.endsWith('.extension') || basePath.endsWith('.modifierExtension');
 }
 
 /**

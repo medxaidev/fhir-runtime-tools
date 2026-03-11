@@ -141,18 +141,18 @@ Core functions in `ComposerWorkspace.tsx`:
 
 ## File Index
 
-| File                                         | Purpose                                                 |
-| -------------------------------------------- | ------------------------------------------------------- |
-| `src/tools/composer/index.tsx`               | Page entry point                                        |
-| `src/tools/composer/ComposerWorkspace.tsx`   | Main workspace, state, sync engine                      |
-| `src/tools/composer/ComposerTree.tsx`        | Data-aware element tree with actions                    |
-| `src/tools/composer/DynamicForm.tsx`         | Type-specific form fields                               |
-| `src/tools/composer/ComposerJsonEditor.tsx`  | Monaco editor wrapper                                   |
-| `src/tools/composer/Breadcrumb.tsx`          | Path breadcrumb                                         |
-| `src/tools/composer/choice-type-engine.ts`   | Choice type engine: detect, resolve, switch, skeleton   |
-| `src/tools/composer/instance-tree-engine.ts` | BackboneElement engine: detect, array ops, deep get/set |
-| `src/tools/composer/slice-engine.ts`         | Slicing engine: extract, match, generate, count         |
-| `src/styles.css`                             | All composer CSS (`.composer-*` classes)                |
+| File                                         | Purpose                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------- |
+| `src/tools/composer/index.tsx`               | Page entry point                                                    |
+| `src/tools/composer/ComposerWorkspace.tsx`   | Main workspace, state, sync engine                                  |
+| `src/tools/composer/ComposerTree.tsx`        | Data-aware element tree with actions                                |
+| `src/tools/composer/DynamicForm.tsx`         | Type-specific form fields                                           |
+| `src/tools/composer/ComposerJsonEditor.tsx`  | Monaco editor wrapper                                               |
+| `src/tools/composer/Breadcrumb.tsx`          | Path breadcrumb                                                     |
+| `src/tools/composer/choice-type-engine.ts`   | Choice type engine: detect, resolve, switch, skeleton               |
+| `src/tools/composer/instance-tree-engine.ts` | BackboneElement engine: detect, array ops, deep get/set             |
+| `src/tools/composer/slice-engine.ts`         | Slicing engine: extract, match, generate, count + extension support |
+| `src/styles.css`                             | All composer CSS (`.composer-*` classes)                            |
 
 ---
 
@@ -192,6 +192,29 @@ Full support for FHIR Profile slicing. See `devdocs/stage/STAGE-Composer-Slicing
 
 ---
 
+## Extension Slicing Support (v1.4)
+
+Full support for FHIR Extension slicing. See `devdocs/stage/STAGE-Composer-Extension.md` for detailed design.
+
+- **Engine**: `slice-engine.ts` — removed extension filter, added `extensionUrl`/`extensionProfile` to `SliceDefinition`, `isExtensionSlicing()`, enhanced `generateSliceSkeleton()` for `{ url: "..." }` output
+- **Discriminator**: `value@url` — matches extension instances by `url` field
+- **Tree**: `🔗 ext` badge (purple), extension URL shown as subtitle per slice, `🔗` icon per slice row
+- **Form**: `🔗 ext` badge in header, discriminator info display
+- **Skeleton**: `generateSliceSkeleton()` produces `{ url: "http://..." }` for extension slices
+
+---
+
+## Reference Field Support (v1.4)
+
+Structured editing for FHIR Reference types. See `devdocs/stage/STAGE-Composer-Reference.md` for detailed design.
+
+- **Component**: `ReferenceField` in `DynamicForm.tsx` — structured `reference` + `display` inputs
+- **Target types**: extracted from `element.types[0].targetProfile[]`, shown as blue chips
+- **Detection**: `element.types.some(t => t.code === 'Reference')` routes to `ReferenceField`
+- **Placeholder**: smart placeholder from target types (e.g. `Patient/...`)
+
+---
+
 ## US Core Package Support (v1.2)
 
 - `PackageSelector` component integrated (reused from Validator)
@@ -214,9 +237,13 @@ Full support for FHIR Profile slicing. See `devdocs/stage/STAGE-Composer-Slicing
 - ~~**value[x] polymorphism**~~: ✅ Implemented in v1.1 — see Choice Type section above
 - ~~**Deep element editing**~~: ✅ Implemented in v1.2 — see BackboneElement section above
 - ~~**Slicing**~~: ✅ Implemented in v1.3 — see Slicing section above
+- ~~**Extension slicing**~~: ✅ Implemented in v1.4 — see Extension section above
+- ~~**Reference field**~~: ✅ Implemented in v1.4 — see Reference section above
 - **Nested BackboneElement**: recursive instance rendering for `CarePlan.activity.detail` etc.
 - **Slice + Choice**: combined handling for `component:systolic.value[x]`
 - **Nested slice children editing**: expand slice instance to edit sub-fields
+- **Extension value[x] editing**: dynamic form from Extension SD for complex extensions
+- **Reference search**: search FHIR server for reference targets
 - **Undo/redo**: operation stack for resource changes
 - **Export**: download resource as JSON file
 - **Import**: paste or upload JSON file

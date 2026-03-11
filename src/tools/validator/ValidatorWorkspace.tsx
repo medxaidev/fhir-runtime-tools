@@ -158,6 +158,17 @@ export function ValidatorWorkspace() {
     }
   }, [detectResourceType]);
 
+  // ── Parsed resource for data-aware tree ───
+  const parsedResource = useMemo<Record<string, unknown> | null>(() => {
+    if (!input.trim()) return null;
+    try {
+      const obj = JSON.parse(input);
+      return typeof obj === 'object' && obj !== null ? obj : null;
+    } catch {
+      return null;
+    }
+  }, [input]);
+
   // ── Resource stats ────────────────────────
   const stats = useMemo(
     () => computeResourceStats(input, profile, validationResult),
@@ -262,6 +273,32 @@ export function ValidatorWorkspace() {
     }
   }, [selectedType, show]);
 
+  // ── Add element from tree ─────────────────
+  const handleAddElement = useCallback((el: CanonicalElement) => {
+    try {
+      const parsed = JSON.parse(input);
+      const key = el.path.split('.').pop()!;
+      if (key in parsed) return;
+      const defaultVal = generateElementDefault(el);
+      if (el.max === 'unbounded' || (typeof el.max === 'number' && el.max > 1)) {
+        parsed[key] = [defaultVal];
+      } else {
+        parsed[key] = defaultVal;
+      }
+      setInput(JSON.stringify(parsed, null, 2));
+    } catch { /* skip */ }
+  }, [input]);
+
+  // ── Remove element from tree ──────────────
+  const handleRemoveElement = useCallback((elementPath: string) => {
+    try {
+      const parsed = JSON.parse(input);
+      const key = elementPath.split('.').pop()!;
+      delete parsed[key];
+      setInput(JSON.stringify(parsed, null, 2));
+    } catch { /* skip */ }
+  }, [input]);
+
   const handleInsertElement = useCallback((el: CanonicalElement) => {
     try {
       const parsed = JSON.parse(input);
@@ -343,8 +380,11 @@ export function ValidatorWorkspace() {
           <div className="validator-workspace__schema">
             <SchemaViewer
               profile={profile}
+              resource={parsedResource}
               onElementSelect={handleElementSelect}
               selectedPath={selectedElementPath}
+              onAddElement={handleAddElement}
+              onRemoveElement={handleRemoveElement}
             />
           </div>
           <div className="validator-workspace__detail">

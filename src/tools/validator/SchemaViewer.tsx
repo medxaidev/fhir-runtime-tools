@@ -12,9 +12,12 @@ export interface ElementNode {
 
 interface SchemaViewerProps {
   profile: CanonicalProfile | null;
+  resource?: Record<string, unknown> | null;
   onElementSelect?: (element: CanonicalElement) => void;
   selectedPath?: string | null;
   onInsertElement?: (element: CanonicalElement) => void;
+  onAddElement?: (element: CanonicalElement) => void;
+  onRemoveElement?: (elementPath: string) => void;
 }
 
 export interface ElementDetailProps {
@@ -54,11 +57,6 @@ function buildNode(element: CanonicalElement, allElements: CanonicalElement[], d
 
 function formatCardinality(min: number, max: number | 'unbounded'): string {
   return `${min}..${max === 'unbounded' ? '*' : max}`;
-}
-
-function formatTypes(el: CanonicalElement): string {
-  if (el.types.length === 0) return 'BackboneElement';
-  return el.types.map((t) => t.code).join(' | ');
 }
 
 function getElementName(path: string): string {
@@ -183,29 +181,88 @@ export function ElementDetail({ element, onInsertElement }: ElementDetailProps) 
 
 // ── Tree Node ────────────────────────────────
 
+// ── Data-aware helpers ──────────────────────
+
+function hasValueInResource(resource: Record<string, unknown> | null | undefined, el: CanonicalElement): boolean {
+  if (!resource) return false;
+  const name = getElementName(el.path);
+  // Choice type: check for any concrete key
+  if (el.path.endsWith('[x]')) {
+    const baseName = name.replace('[x]', '');
+    return Object.keys(resource).some((k) => k.startsWith(baseName) && k !== baseName);
+  }
+  return resource[name] !== undefined;
+}
+
+function getPreviewValue(resource: Record<string, unknown> | null | undefined, el: CanonicalElement): string | null {
+  if (!resource) return null;
+  const name = getElementName(el.path);
+  let val: unknown;
+  if (el.path.endsWith('[x]')) {
+    const baseName = name.replace('[x]', '');
+    const key = Object.keys(resource).find((k) => k.startsWith(baseName) && k !== baseName);
+    if (key) val = resource[key];
+  } else {
+    val = resource[name];
+  }
+  if (val === undefined || val === null) return null;
+  if (typeof val === 'string') return val.length > 30 ? val.slice(0, 30) + '…' : val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) return `[${val.length}]`;
+  if (typeof val === 'object') {
+    const keys = Object.keys(val as Record<string, unknown>);
+    return `{${keys.length}}`;
+  }
+  return null;
+}
+
+function isChoiceElement(el: CanonicalElement): boolean {
+  return el.path.endsWith('[x]');
+}
+
+function isBackboneArray(el: CanonicalElement): boolean {
+  const isBackbone = el.types.length === 0 || el.types.some(t => t.code === 'BackboneElement');
+  const isArray = el.max === 'unbounded' || (typeof el.max === 'number' && el.max > 1);
+  return isBackbone && isArray;
+}
+
 function TreeNode({
   node,
   selectedPath,
   expandedPaths,
+  resource,
   onToggle,
   onSelect,
+  onAddElement,
+  onRemoveElement,
 }: {
   node: ElementNode;
   selectedPath: string | null;
   expandedPaths: Set<string>;
+  resource?: Record<string, unknown> | null;
   onToggle: (path: string) => void;
   onSelect: (el: CanonicalElement) => void;
+  onAddElement?: (el: CanonicalElement) => void;
+  onRemoveElement?: (path: string) => void;
 }) {
   const name = getElementName(node.element.path);
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedPaths.has(node.element.path);
   const isSelected = selectedPath === node.element.path;
   const isRequired = node.element.min > 0;
+  const isChoice = isChoiceElement(node.element);
+  const isBbArray = isBackboneArray(node.element);
+  const isPresent = resource ? hasValueInResource(resource, node.element) : false;
+  const preview = resource && !isBbArray ? getPreviewValue(resource, node.element) : null;
+  const arrayCount = isBbArray && resource ? (() => {
+    const arr = resource[name];
+    return Array.isArray(arr) ? arr.length : 0;
+  })() : 0;
 
   return (
     <div className="schema-tree-node">
       <div
-        className={`schema-tree-node__row ${isSelected ? 'schema-tree-node__row--selected' : ''} ${hasChildren ? 'schema-tree-node__row--expandable' : ''}`}
+        className={`schema-tree-node__row ${isSelected ? 'schema-tree-node__row--selected' : ''} ${hasChildren ? 'schema-tree-node__row--expandable' : ''} ${resource && !isPresent ? 'schema-tree-node__row--absent' : ''}`}
         style={{ paddingLeft: node.depth * 16 + 8 }}
         onClick={() => {
           onSelect(node.element);
@@ -219,14 +276,34 @@ function TreeNode({
           {name}
         </span>
         {isRequired && <span className="schema-tree-node__required-star">★</span>}
+        {isChoice && <span className="schema-tree-node__badge schema-tree-node__badge--choice">[x]</span>}
+        {isBbArray && <span className="schema-tree-node__badge schema-tree-node__badge--backbone">⧉ {arrayCount}</span>}
+        {resource && isPresent && preview && (
+          <span className="schema-tree-node__preview">{preview}</span>
+        )}
         <span className="schema-tree-node__meta">
           <span className="schema-tree-node__cardinality">
             {formatCardinality(node.element.min, node.element.max)}
           </span>
-          <span className="schema-tree-node__type">
-            {formatTypes(node.element)}
-          </span>
         </span>
+        {resource && (
+          <span className="schema-tree-node__actions">
+            {!isPresent && !isChoice && !isBbArray && onAddElement && (
+              <button
+                className="schema-tree-node__btn schema-tree-node__btn--add"
+                onClick={(e) => { e.stopPropagation(); onAddElement(node.element); }}
+                title="Add element"
+              >+</button>
+            )}
+            {isPresent && !isRequired && onRemoveElement && (
+              <button
+                className="schema-tree-node__btn schema-tree-node__btn--remove"
+                onClick={(e) => { e.stopPropagation(); onRemoveElement(node.element.path); }}
+                title="Remove element"
+              >×</button>
+            )}
+          </span>
+        )}
       </div>
       {hasChildren && isExpanded && (
         <div className="schema-tree-node__children">
@@ -236,8 +313,11 @@ function TreeNode({
               node={child}
               selectedPath={selectedPath}
               expandedPaths={expandedPaths}
+              resource={resource}
               onToggle={onToggle}
               onSelect={onSelect}
+              onAddElement={onAddElement}
+              onRemoveElement={onRemoveElement}
             />
           ))}
         </div>
@@ -248,7 +328,7 @@ function TreeNode({
 
 // ── Schema Viewer ────────────────────────────
 
-export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaViewerProps) {
+export function SchemaViewer({ profile, resource, onElementSelect, selectedPath, onAddElement, onRemoveElement }: SchemaViewerProps) {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [internalSelectedPath, setInternalSelectedPath] = useState<string | null>(null);
 
@@ -308,8 +388,11 @@ export function SchemaViewer({ profile, onElementSelect, selectedPath }: SchemaV
               node={node}
               selectedPath={activePath}
               expandedPaths={expandedPaths}
+              resource={resource}
               onToggle={handleToggle}
               onSelect={handleSelect}
+              onAddElement={onAddElement}
+              onRemoveElement={onRemoveElement}
             />
           ))}
         </div>

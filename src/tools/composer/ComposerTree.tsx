@@ -15,6 +15,7 @@ import {
 } from './instance-tree-engine';
 import {
   isSlicedElement,
+  isExtensionSlicing,
   getSlices,
   countSliceInstances,
   matchSlice,
@@ -228,10 +229,15 @@ function SliceChildren({
               style={{ paddingLeft: (depth + 1) * 16 + 8 }}
             >
               <span className="composer-tree-node__arrow" />
-              <span className="composer-tree-node__slice-icon">🧩</span>
+              <span className="composer-tree-node__slice-icon">{slice.extensionUrl ? '🔗' : '🧩'}</span>
               <span className={`composer-tree-node__name ${isSliceRequired ? 'composer-tree-node__name--required' : ''}`}>
                 :{slice.sliceName}
               </span>
+              {slice.extensionUrl && (
+                <span className="composer-tree-node__ext-url" title={slice.extensionUrl}>
+                  {slice.extensionUrl.split('/').pop()}
+                </span>
+              )}
               {isSliceRequired && <span className="composer-tree-node__star">★</span>}
               <span className="composer-tree-node__slice-count">{count > 0 ? `[${count}]` : ''}</span>
               <span className="composer-tree-node__meta">
@@ -369,6 +375,7 @@ function TreeNode({
   const isArray = isArrayElement(node.element);
   const isBackboneArray = isBackbone && isArray;
   const isSliced = slicingMap ? isSlicedElement(node.element.path, slicingMap) : false;
+  const isExtSliced = isSliced ? isExtensionSlicing(node.element.path, slicingMap!) : false;
   const isPresent = hasValueInResource(resource, node.element);
   const preview = (isBackboneArray || isSliced) ? null : getPreviewValue(resource, node.element);
   const hasExpandable = hasChildren || isChoice || isBackboneArray || isSliced;
@@ -395,7 +402,11 @@ function TreeNode({
         {isRequired && <span className="composer-tree-node__star">★</span>}
         {isChoice && <span className="composer-tree-node__choice-badge">[x]</span>}
         {isBackboneArray && !isSliced && <span className="composer-tree-node__backbone-badge">⧉ {arrayCount}</span>}
-        {isSliced && <span className="composer-tree-node__slice-badge">🧩 sliced</span>}
+        {isSliced && (
+          <span className={isExtSliced ? 'composer-tree-node__ext-badge' : 'composer-tree-node__slice-badge'}>
+            {isExtSliced ? '🔗 ext' : '🧩 sliced'}
+          </span>
+        )}
         {isPresent && preview && (
           <span className="composer-tree-node__preview">{preview}</span>
         )}

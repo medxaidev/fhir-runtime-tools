@@ -5,11 +5,6 @@ import { runtime } from './setup';
 import './styles.css';
 
 import { ValidatorPage } from './tools/validator';
-import { FHIRPathPage } from './tools/fhirpath';
-import { ProfilePage } from './tools/profile';
-import { ResourcePage } from './tools/resource';
-import { DiffPage } from './tools/diff';
-import { GeneratorPage } from './tools/generator';
 import { ComposerPage } from './tools/composer';
 
 // ── Route definitions ──────────────────────────
@@ -22,22 +17,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'Validator', label: 'Resource Validator', icon: '◎', section: 'Tools' },
-  { id: 'FHIRPath', label: 'FHIRPath Lab', icon: '⟡', section: 'Tools' },
-  { id: 'Profile', label: 'Profile Explorer', icon: '◈', section: 'Tools' },
-  { id: 'Resource', label: 'Resource Lab', icon: '▣', section: 'Tools' },
   { id: 'Composer', label: 'Resource Composer', icon: '✎', section: 'Tools' },
-  { id: 'Diff', label: 'Resource Diff', icon: '⊟', section: 'Tools' },
-  { id: 'Generator', label: 'Resource Generator', icon: '⊞', section: 'Tools' },
 ];
 
 const PAGE_MAP: Record<string, React.ComponentType> = {
   Validator: ValidatorPage,
-  FHIRPath: FHIRPathPage,
-  Profile: ProfilePage,
-  Resource: ResourcePage,
   Composer: ComposerPage,
-  Diff: DiffPage,
-  Generator: GeneratorPage,
 };
 
 // ── Pages that need full-bleed (no padding) ────

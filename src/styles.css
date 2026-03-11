@@ -1027,6 +1027,83 @@ body {
   text-overflow: ellipsis;
 }
 
+.schema-tree-node__row--absent {
+  opacity: 0.45;
+}
+
+.schema-tree-node__badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 3px;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+
+.schema-tree-node__badge--choice {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.schema-tree-node__badge--backbone {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.schema-tree-node__preview {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+  margin-left: 4px;
+}
+
+.schema-tree-node__actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.schema-tree-node__btn {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.schema-tree-node__row:hover .schema-tree-node__btn {
+  opacity: 1;
+}
+
+.schema-tree-node__btn--add {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.schema-tree-node__btn--add:hover {
+  background: #bbf7d0;
+}
+
+.schema-tree-node__btn--remove {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.schema-tree-node__btn--remove:hover {
+  background: #fecaca;
+}
+
 /* ── Element Detail ───────────────── */
 .element-detail {
   padding: 10px 14px;
@@ -1531,12 +1608,95 @@ body {
   overflow-y: auto;
 }
 
+.composer-workspace__editor-col {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .composer-workspace__editor {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Composer Issues Panel ────────── */
+.composer-issues {
+  flex-shrink: 0;
+  max-height: 180px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.composer-issues__header {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  flex-shrink: 0;
+}
+
+.composer-issues__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #991b1b;
+}
+
+.composer-issues__body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.composer-issues__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.composer-issues__item:last-child {
+  border-bottom: none;
+}
+
+.composer-issues__severity {
+  flex-shrink: 0;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+}
+
+.composer-issues__severity--error {
+  color: #dc2626;
+}
+
+.composer-issues__severity--warning {
+  color: #d97706;
+}
+
+.composer-issues__severity--information {
+  color: #2563eb;
+}
+
+.composer-issues__message {
+  flex: 1;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.composer-issues__path {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: auto;
 }
 
 /* ── Footer ──────────────────────── */
@@ -2263,4 +2423,72 @@ body {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--color-text-muted);
+}
+
+/* ── Extension ──────────────────────── */
+.composer-tree-node__ext-badge {
+  font-size: 9px;
+  font-weight: 700;
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: 0 5px;
+  border-radius: 3px;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+
+.composer-tree-node__ext-url {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: #7c3aed;
+  margin-left: 4px;
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.composer-form__ext-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ── Reference ──────────────────────── */
+.composer-form__reference {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.composer-form__ref-targets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.composer-form__ref-targets-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.composer-form__ref-target-chip {
+  font-size: 10px;
+  font-weight: 600;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.composer-form__ref-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }

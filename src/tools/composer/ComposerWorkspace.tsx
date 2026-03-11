@@ -536,14 +536,38 @@ export function ComposerWorkspace() {
           />
         </div>
 
-        {/* Column 3: JSON Editor */}
-        <div className="composer-workspace__editor">
-          <ComposerJsonEditor
-            value={jsonText}
-            onChange={handleJsonChange}
-            editorRef={editorRef}
-            onCursorKey={handleCursorKey}
-          />
+        {/* Column 3: JSON Editor + Issues Panel */}
+        <div className="composer-workspace__editor-col">
+          <div className="composer-workspace__editor">
+            <ComposerJsonEditor
+              value={jsonText}
+              onChange={handleJsonChange}
+              editorRef={editorRef}
+              onCursorKey={handleCursorKey}
+            />
+          </div>
+          {validationResult && !validationResult.valid && (
+            <div className="composer-issues">
+              <div className="composer-issues__header">
+                <span className="composer-issues__title">
+                  Problems ({errorCount + warnCount})
+                </span>
+              </div>
+              <div className="composer-issues__body">
+                {validationResult.issues.map((issue, idx) => (
+                  <div key={idx} className={`composer-issues__item composer-issues__item--${issue.severity}`}>
+                    <span className={`composer-issues__severity composer-issues__severity--${issue.severity}`}>
+                      {issue.severity === 'error' ? '✗' : issue.severity === 'warning' ? '⚠' : 'ℹ'}
+                    </span>
+                    <span className="composer-issues__message">{issue.message}</span>
+                    {issue.path && (
+                      <span className="composer-issues__path">{issue.path}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
