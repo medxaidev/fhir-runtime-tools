@@ -21,7 +21,7 @@ export default defineConfig({
     conditions: ['browser', 'default'],
   },
   optimizeDeps: {
-    include: ['@prismui/core', '@prismui/react', 'fhir-runtime'],
+    include: ['@prismui/core', '@prismui/react', 'fhir-runtime', 'fhir-definition'],
   },
   build: {
     rollupOptions: {

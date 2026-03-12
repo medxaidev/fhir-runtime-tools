@@ -1,6 +1,6 @@
 {
   "name": "@prismui/fhir-runtime-tools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Prismui FHIR Runtime Tools",
   "homepage": "https://medxai.dev",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@prismui/core": "0.2.0",
     "@prismui/react": "0.2.0",
-    "fhir-runtime": "^0.7.2",
+    "fhir-runtime": "^0.8.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

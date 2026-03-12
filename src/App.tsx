@@ -83,10 +83,10 @@ function Header() {
   return (
     <header className="shell-header">
       <span className="shell-header__logo">FHIR Runtime Tools</span>
-      <span className="shell-header__badge">v0.1.0</span>
+      <span className="shell-header__badge">v0.2.0</span>
       <span className="shell-header__spacer" />
       <div className="shell-header__meta">
-        <span className="shell-header__meta-item">fhir-runtime v0.7.2</span>
+        <span className="shell-header__meta-item">fhir-runtime v0.8.0</span>
         <span className="shell-header__meta-item">state v{state.version}</span>
       </div>
     </header>

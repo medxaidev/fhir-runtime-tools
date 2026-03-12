@@ -1,95 +1,133 @@
 # FHIR Runtime Tools
 
-🔗 **Live Demo**: [fhir-runtime-tools.vercel.app](https://fhir-runtime-tools.vercel.app)
+A browser-based developer toolkit for [fhir-runtime](https://github.com/nicefhir/fhir-runtime) — the TypeScript FHIR R4 execution engine. Validate resources, compose FHIR data visually, and explore instance structures, all running 100% in the browser with no backend.
 
-A browser-based developer toolkit for testing and debugging [fhir-runtime](https://github.com/your-org/fhir-runtime). This interactive web application provides a comprehensive suite of tools for working with FHIR resources, profiles, and validation.
+**Version:** 0.2.0 | **FHIR:** R4 (4.0.1) | **License:** MIT
 
-## 🌟 Features
+---
 
-### Core Tools
+## Features
 
-- **Resource Validator** - Validate FHIR resources against profiles with detailed error reporting
-- **FHIRPath Lab** - Interactive FHIRPath expression evaluator and tester
-- **Profile Explorer** - Browse and explore FHIR profiles and their constraints
-- **Resource Lab** - Create, edit, and test FHIR resources in real-time
-- **Resource Diff** - Compare FHIR resources and visualize differences
-- **Resource Generator** - Generate sample FHIR resources from profiles
+### Resource Validator
 
-### Built With
+Validate FHIR resources against R4 base profiles and US Core 7.0.0 profiles.
 
-- **[fhir-runtime](https://github.com/your-org/fhir-runtime)** v0.7.0 - Core FHIR validation and processing engine
-- **[PrismUI](https://github.com/your-org/prismui)** - Modern React component library
-- **React 19** - Latest React with concurrent features
-- **Vite** - Fast build tooling and development server
+- 3-column layout: Resource list | Schema tree | Element details
+- Skeleton generator for minimal valid resources
+- JSON ↔ Tree bidirectional sync
+- Required element highlighting, quick insert, validation rule explanation
+- Resource stats (elements used / total / missing required)
 
-## 🚀 Getting Started
+### Resource Composer
+
+Visual FHIR resource editor with three synchronized views.
+
+- **Element Tree** — profile-aware element tree with presence indicators
+- **Dynamic Form** — type-specific form fields with auto-generation
+- **JSON Editor** — Monaco editor with cursor sync
+- Choice type (`value[x]`) switching, BackboneElement arrays, slicing, extension slicing, reference fields
+
+### Instance Explorer
+
+Read-only FHIR instance inspector with element-level detail.
+
+- Instance tree built from Resource JSON + CanonicalProfile
+- Element inspector (path, type, cardinality, binding, constraints, value)
+- Badges for choice, slice, extension, backbone, and reference elements
+
+---
+
+## Tech Stack
+
+| Layer            | Technology     | Version |
+| ---------------- | -------------- | ------- |
+| FHIR Engine      | fhir-runtime   | 0.8.0   |
+| UI Framework     | React          | 19.2    |
+| State Management | @prismui/core  | 0.2.0   |
+| React Bindings   | @prismui/react | 0.2.0   |
+| Build            | Vite           | 7.3     |
+| Language         | TypeScript     | 5.x     |
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 20 or higher
-- npm or pnpm
+- Node.js 20+
+- npm
 
-### Installation
+### Install & Run
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/fhir-runtime-tools.git
+git clone https://github.com/nicefhir/fhir-runtime-tools.git
 cd fhir-runtime-tools
 
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`
+Open `http://localhost:3000`.
 
-### Build for Production
+### Build
 
 ```bash
 npm run build
 ```
 
-The built files will be in the `dist` directory.
+Output in `dist/`.
 
-## 📖 Usage
+---
 
-1. **Select a Tool** - Choose from the sidebar navigation
-2. **Load Resources** - Import FHIR resources or use sample data
-3. **Validate & Test** - Run validation, execute FHIRPath, or compare resources
-4. **Explore Results** - View detailed output, errors, and suggestions
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
-fhir-runtime-tools/
-├── src/
-│   ├── components/     # Reusable UI components
-│   ├── tools/          # Individual tool implementations
-│   ├── runtime/        # FHIR runtime integration
-│   ├── data/           # Sample data and fixtures
-│   ├── App.tsx         # Main application component
-│   └── main.tsx        # Application entry point
-├── public/             # Static assets
-└── index.html          # HTML template
+src/
+├── App.tsx                     # PrismUI Shell + routing
+├── setup.ts                    # Interaction Runtime init
+├── components/ui/              # Base UI components (Button, Card, Tree, etc.)
+├── tools/
+│   ├── validator/              # Resource Validator (workspace, schema, validation)
+│   ├── composer/               # Resource Composer (tree, form, JSON editor, engines)
+│   └── explorer/               # Instance Explorer (tree builder, inspector)
+├── runtime/
+│   ├── adapter.ts              # fhir-runtime adapter (parse, validate, FHIRPath)
+│   └── profiles.ts             # Profile registry (R4 + US Core lazy loading)
+├── shims/                      # Browser shims for node:fs, node:path, node:url
+├── data/                       # R4 profiles JSON, US Core profiles JSON
+└── styles.css                  # Global CSS (BEM + CSS Variables)
 ```
 
-## 🤝 Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## FHIR Data
 
-## 📄 License
+| Package       | Profiles | Source                 |
+| ------------- | -------- | ---------------------- |
+| FHIR R4       | 210 SDs  | hl7.fhir.r4.core@4.0.1 |
+| US Core 7.0.0 | 63       | hl7.fhir.us.core@7.0.0 |
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Profiles are pre-extracted to JSON and lazy-loaded at runtime. See `scripts/extract-r4-definitions.mjs` and `scripts/extract-us-core.mjs`.
 
-## 👤 Author
+---
 
-**Fangjun** - [fangjun20208@gmail.com](mailto:fangjun20208@gmail.com)
+## Changelog
 
-## 🔗 Links
+See [CHANGELOG.md](./CHANGELOG.md).
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
+
+## Author
+
+**Fangjun** — [fangjun20208@gmail.com](mailto:fangjun20208@gmail.com)
+
+## Links
 
 - [Homepage](https://medxai.dev)
-- [Live Demo](https://fhir-runtime-tools.vercel.app)
-- [fhir-runtime Documentation](https://github.com/your-org/fhir-runtime)
-- [PrismUI Documentation](https://github.com/your-org/prismui)
+- [fhir-runtime](https://github.com/nicefhir/fhir-runtime)
+- [Architecture](./devdocs/ARCHITECTURE.md)
+- [Roadmap](./devdocs/ROADMAP.md)
