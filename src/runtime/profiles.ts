@@ -5,7 +5,6 @@ import type { CanonicalProfile } from 'fhir-runtime';
 // Lazy-loaded from src/data/r4-profiles.json and us-core-profiles.json
 
 const profileCache = new Map<string, CanonicalProfile>();
-const rawSDCache = new Map<string, Record<string, unknown>>();
 const resourceTypes = new Set<string>();
 const complexTypes = new Set<string>();
 const primitiveTypes = new Set<string>();
@@ -14,7 +13,6 @@ let loadPromise: Promise<void> | null = null;
 
 // ── US Core ──────────────────────────────────
 const usCoreProfileCache = new Map<string, CanonicalProfile>();
-const rawUsCoreSDCache = new Map<string, Record<string, unknown>>();
 const usCoreProfileNames: string[] = [];
 let usCoreLoaded = false;
 let usCoreLoadPromise: Promise<void> | null = null;
@@ -30,7 +28,6 @@ async function loadProfiles(): Promise<void> {
       for (const [type, sd] of Object.entries(sdMap)) {
         try {
           const sdObj = sd as Record<string, unknown>;
-          rawSDCache.set(type, sdObj);
           const canonical = buildCanonicalProfile(sdObj as unknown as Parameters<typeof buildCanonicalProfile>[0]);
           profileCache.set(type, canonical);
 
@@ -66,7 +63,6 @@ async function loadUSCoreProfiles(): Promise<void> {
       for (const [name, sd] of Object.entries(sdMap)) {
         try {
           const sdObj = sd as Record<string, unknown>;
-          rawUsCoreSDCache.set(name, sdObj);
           const canonical = buildCanonicalProfile(sdObj as unknown as Parameters<typeof buildCanonicalProfile>[0]);
           usCoreProfileCache.set(name, canonical);
           usCoreProfileNames.push(name);
@@ -106,11 +102,6 @@ export async function getAllProfiles(): Promise<Map<string, CanonicalProfile>> {
   return profileCache;
 }
 
-export async function getRawStructureDefinition(name: string): Promise<Record<string, unknown> | undefined> {
-  await loadProfiles();
-  return rawSDCache.get(name);
-}
-
 export function getProfileSync(name: string): CanonicalProfile | undefined {
   return profileCache.get(name);
 }
@@ -138,7 +129,3 @@ export async function getUSCoreProfile(name: string): Promise<CanonicalProfile |
   return usCoreProfileCache.get(name);
 }
 
-export async function getRawUSCoreSD(name: string): Promise<Record<string, unknown> | undefined> {
-  await loadUSCoreProfiles();
-  return rawUsCoreSDCache.get(name);
-}

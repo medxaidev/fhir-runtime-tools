@@ -1,4 +1,16 @@
+// ── Choice Type Engine ───────────────────────
+// Thin adapter over fhir-runtime v0.10.0 Choice Type APIs.
+// Re-exports fhir-runtime functions and keeps app-layer UI functions.
+
 import type { CanonicalElement } from 'fhir-runtime';
+import {
+  isChoiceType as rtIsChoiceType,
+  getChoiceBaseName as rtGetChoiceBaseName,
+  buildChoiceJsonKey as rtBuildChoiceJsonKey,
+  parseChoiceJsonKey as rtParseChoiceJsonKey,
+  resolveActiveChoiceType as rtResolveActiveChoiceType,
+  resolveChoiceFromJsonKey as rtResolveChoiceFromJsonKey,
+} from 'fhir-runtime';
 
 // ── Core types ───────────────────────────────
 
@@ -15,35 +27,29 @@ export interface ChoiceTypeInfo {
   activeJsonKey: string | null;
 }
 
-// ── Detection ────────────────────────────────
+// ── Detection (delegates to fhir-runtime) ────
 
 /** Check if an element is a choice type (path ends with [x]) */
 export function isChoiceType(element: CanonicalElement): boolean {
-  return element.path.endsWith('[x]') && element.types.length > 1;
+  return rtIsChoiceType(element);
 }
 
 /** Get the base name from a choice element path: "value[x]" → "value" */
 export function getChoiceBaseName(elementPath: string): string {
-  const name = elementPath.split('.').pop() ?? '';
-  return name.replace('[x]', '');
+  return rtGetChoiceBaseName(elementPath);
 }
 
 /** Build JSON key from base name + type code: ("value", "Quantity") → "valueQuantity" */
 export function buildChoiceJsonKey(baseName: string, typeCode: string): string {
-  return baseName + typeCode.charAt(0).toUpperCase() + typeCode.slice(1);
+  return rtBuildChoiceJsonKey(baseName, typeCode);
 }
 
 /** Parse a JSON key back to (baseName, typeCode): "valueQuantity" → ("value", "Quantity") */
 export function parseChoiceJsonKey(jsonKey: string, baseName: string): string | null {
-  if (!jsonKey.startsWith(baseName)) return null;
-  const rest = jsonKey.slice(baseName.length);
-  if (rest.length === 0) return null;
-  // Type code starts with uppercase
-  if (rest[0] !== rest[0].toUpperCase()) return null;
-  return rest;
+  return rtParseChoiceJsonKey(jsonKey, baseName);
 }
 
-// ── Resolution ───────────────────────────────
+// ── Resolution (delegates to fhir-runtime) ───
 
 /**
  * Resolve choice type info for an element given the current resource.
@@ -53,27 +59,13 @@ export function resolveChoiceType(
   element: CanonicalElement,
   resource: Record<string, unknown>,
 ): ChoiceTypeInfo {
-  const baseName = getChoiceBaseName(element.path);
-  const availableTypes = element.types.map((t) => t.code);
-
-  let activeType: string | null = null;
-  let activeJsonKey: string | null = null;
-
-  for (const typeCode of availableTypes) {
-    const jsonKey = buildChoiceJsonKey(baseName, typeCode);
-    if (jsonKey in resource) {
-      activeType = typeCode;
-      activeJsonKey = jsonKey;
-      break;
-    }
-  }
-
+  const result = rtResolveActiveChoiceType(element, resource);
   return {
     canonicalPath: element.path,
-    baseName,
-    availableTypes,
-    activeType,
-    activeJsonKey,
+    baseName: result.baseName,
+    availableTypes: result.availableTypes,
+    activeType: result.activeType,
+    activeJsonKey: result.activeJsonKey,
   };
 }
 
@@ -85,15 +77,7 @@ export function resolveChoiceFromJsonKey(
   jsonKey: string,
   elements: Map<string, CanonicalElement>,
 ): { element: CanonicalElement; typeCode: string } | null {
-  for (const [path, el] of elements) {
-    if (!path.endsWith('[x]')) continue;
-    const baseName = getChoiceBaseName(path);
-    const typeCode = parseChoiceJsonKey(jsonKey, baseName);
-    if (typeCode && el.types.some((t) => t.code === typeCode)) {
-      return { element: el, typeCode };
-    }
-  }
-  return null;
+  return rtResolveChoiceFromJsonKey(jsonKey, elements);
 }
 
 // ── Switching ────────────────────────────────

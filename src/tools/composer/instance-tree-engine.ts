@@ -1,4 +1,12 @@
+// ── Instance Tree Engine ─────────────────────
+// Delegates detection to fhir-runtime v0.10.0 APIs.
+// Keeps app-layer utilities for resource mutation and deep path access.
+
 import type { CanonicalElement } from 'fhir-runtime';
+import {
+  isBackboneElement as rtIsBackboneElement,
+  isArrayElement as rtIsArrayElement,
+} from 'fhir-runtime';
 
 // ── Instance Path ────────────────────────────
 // Schema path:   "Patient.contact.name"
@@ -9,16 +17,18 @@ export type JsonPathSegment = string | number;
 
 /**
  * Check if an element is a backbone (has nested children in SD).
+ * Delegates to fhir-runtime.
  */
 export function isBackboneElement(element: CanonicalElement): boolean {
-  return element.types.length === 0 || element.types.some((t) => t.code === 'BackboneElement');
+  return rtIsBackboneElement(element);
 }
 
 /**
  * Check if an element is an array (max > 1 or unbounded).
+ * Delegates to fhir-runtime.
  */
 export function isArrayElement(element: CanonicalElement): boolean {
-  return element.max === 'unbounded' || (typeof element.max === 'number' && element.max > 1);
+  return rtIsArrayElement(element);
 }
 
 /**

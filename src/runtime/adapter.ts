@@ -66,58 +66,6 @@ export function parseResource(json: string): AdapterParseResult {
 
 // ── Validate Resource ─────────────────────────
 
-// Workaround for fhir-runtime v0.7.1 inferComplexType bug:
-// The type inference heuristic misidentifies ContactPoint as Identifier,
-// HumanName/Address patterns can also be confused. We suppress false-positive
-// TYPE_MISMATCH errors by checking if the inferred vs expected types are
-// in a known-ambiguous set and the data shape matches the expected type.
-const TYPE_INFERENCE_FIXES: Record<string, (obj: unknown) => boolean> = {
-  ContactPoint: (obj) => {
-    if (typeof obj !== 'object' || obj === null) return false;
-    const o = obj as Record<string, unknown>;
-    return ('system' in o || 'value' in o || 'use' in o) && !('type' in o && 'period' in o && 'assigner' in o);
-  },
-  Identifier: (obj) => {
-    if (typeof obj !== 'object' || obj === null) return false;
-    const o = obj as Record<string, unknown>;
-    return 'system' in o && 'value' in o && !('use' in o && ['home', 'work', 'temp', 'old', 'mobile'].includes(String(o.use)));
-  },
-};
-
-function isTypeMismatchFalsePositive(
-  issue: { code: string; path: string; message: string },
-  parsed: Record<string, unknown>,
-  expectedTypeCodes: string[],
-): boolean {
-  if (issue.code !== 'TYPE_MISMATCH') return false;
-
-  // Extract value at the path from the resource
-  const pathParts = issue.path.split('.');
-  let current: unknown = parsed;
-  for (let i = 1; i < pathParts.length; i++) {
-    if (current === null || current === undefined) return false;
-    if (Array.isArray(current)) {
-      // Check first element for type checking
-      current = current[0];
-      if (current === null || current === undefined) return false;
-    }
-    current = (current as Record<string, unknown>)[pathParts[i]];
-  }
-
-  // If value is an array, check the first element
-  const items = Array.isArray(current) ? current : [current];
-
-  for (const item of items) {
-    for (const expectedType of expectedTypeCodes) {
-      const checker = TYPE_INFERENCE_FIXES[expectedType];
-      if (checker && checker(item)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 export async function validateResource(json: string): Promise<AdapterValidationResult> {
   try {
     const parsed = JSON.parse(json);
@@ -134,25 +82,11 @@ export async function validateResource(json: string): Promise<AdapterValidationR
     const validator = new StructureValidator();
     const result = validator.validate(parsed as Resource, profile);
 
-    // Filter out false-positive TYPE_MISMATCH issues caused by fhir-runtime inference bug
-    const filteredIssues = result.issues.filter((i) => {
-      if (String(i.code) === 'TYPE_MISMATCH' && i.path) {
-        const element = profile.elements.get(i.path);
-        if (element) {
-          const expectedCodes = element.types.map((t) => t.code);
-          if (isTypeMismatchFalsePositive({ code: String(i.code), path: i.path, message: i.message }, parsed, expectedCodes)) {
-            return false; // suppress false positive
-          }
-        }
-      }
-      return true;
-    });
-
-    const hasErrors = filteredIssues.some((i) => i.severity === 'error');
+    const hasErrors = result.issues.some((i) => i.severity === 'error');
 
     return {
       valid: !hasErrors,
-      issues: filteredIssues.map((i) => ({
+      issues: result.issues.map((i) => ({
         severity: i.severity,
         code: String(i.code),
         message: i.message,

@@ -2,7 +2,7 @@
 
 A browser-based developer toolkit for [fhir-runtime](https://github.com/nicefhir/fhir-runtime) — the TypeScript FHIR R4 execution engine. Validate resources, compose FHIR data visually, and explore instance structures, all running 100% in the browser with no backend.
 
-**Version:** 0.2.0 | **FHIR:** R4 (4.0.1) | **License:** MIT
+**Version:** 0.3.0 | **FHIR:** R4 (4.0.1) | **License:** MIT
 
 ---
 
@@ -41,10 +41,10 @@ Read-only FHIR instance inspector with element-level detail.
 
 | Layer            | Technology     | Version |
 | ---------------- | -------------- | ------- |
-| FHIR Engine      | fhir-runtime   | 0.8.0   |
+| FHIR Engine      | fhir-runtime   | 0.10.0  |
 | UI Framework     | React          | 19.2    |
-| State Management | @prismui/core  | 0.2.0   |
-| React Bindings   | @prismui/react | 0.2.0   |
+| State Management | @prismui/core  | 0.3.0   |
+| React Bindings   | @prismui/react | 0.3.0   |
 | Build            | Vite           | 7.3     |
 | Language         | TypeScript     | 5.x     |
 

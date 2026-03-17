@@ -291,7 +291,7 @@ function SliceChildren({
         );
       })}
       {/* Unmatched items (open slicing allows extra items) */}
-      {slicedInfo.slicing.rules === 'open' && items.length > 0 && (() => {
+      {slicedInfo.rules === 'open' && items.length > 0 && (() => {
         const unmatchedIndices: number[] = [];
         for (let i = 0; i < items.length; i++) {
           if (!matchSlice(items[i] as Record<string, unknown>, slicedInfo)) {

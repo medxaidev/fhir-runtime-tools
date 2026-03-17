@@ -418,7 +418,7 @@ export function DynamicForm({ element, profile, value, resource, instanceIndex, 
           <div className="composer-form__slice-info">
             <span className="composer-form__slice-info-label">Slicing</span>
             <span className="composer-form__slice-info-value">
-              discriminator: {sliceInfo.discriminator.map(d => `${d.type}@${d.path}`).join(', ')} | rules: {sliceInfo.rules}
+              discriminator: {sliceInfo.discriminators.map((d: { type: string; path: string }) => `${d.type}@${d.path}`).join(', ')} | rules: {sliceInfo.rules}
             </span>
           </div>
         )}

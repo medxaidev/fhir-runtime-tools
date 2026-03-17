@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNotification } from '@prismui/react';
 import type { CanonicalProfile } from 'fhir-runtime';
 import {
-  getResourceTypeNames, getProfile, getRawStructureDefinition,
-  getUSCoreProfileNames, getUSCoreProfile, getRawUSCoreSD,
+  getResourceTypeNames, getProfile,
+  getUSCoreProfileNames, getUSCoreProfile,
 } from '../../runtime/profiles';
 import { validateResource } from '../../runtime/adapter';
 import type { AdapterValidationResult } from '../../runtime/adapter';
 import { getExamplesForType } from '../../data/example-library';
-import { extractSlicing } from '../composer/slice-engine';
+import { getSlicingMap } from '../composer/slice-engine';
 import type { SlicedElementInfo } from '../composer/slice-engine';
 import { PackageSelector } from '../validator/PackageSelector';
 import { ExplorerTree } from './ExplorerTree';
@@ -74,12 +74,14 @@ export function ExplorerWorkspace() {
       return;
     }
     const loadProfileFn = currentPackage === 'us-core' ? getUSCoreProfile : getProfile;
-    const loadRawFn = currentPackage === 'us-core' ? getRawUSCoreSD : getRawStructureDefinition;
-    Promise.all([loadProfileFn(selectedType), loadRawFn(selectedType)]).then(([p, rawSD]) => {
-      if (p) setProfile(p);
-      else setProfile(null);
-      if (rawSD) setSlicingMap(extractSlicing(rawSD));
-      else setSlicingMap(new Map());
+    loadProfileFn(selectedType).then((p) => {
+      if (p) {
+        setProfile(p);
+        setSlicingMap(getSlicingMap(p));
+      } else {
+        setProfile(null);
+        setSlicingMap(new Map());
+      }
     });
   }, [selectedType, currentPackage]);
 

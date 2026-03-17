@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.0] - 2026-03-18
+
+### Changed
+
+- **fhir-runtime** upgraded from `0.8.0` to `0.10.0`
+  - `buildCanonicalProfile()` now preserves slicing elements — `CanonicalProfile.slicing` field available
+  - `inferComplexType()` bug fixed — ContactPoint/Identifier no longer misidentified
+  - New Slicing APIs: `matchSlice()`, `countSliceInstances()`, `generateSliceSkeleton()`, `isExtensionSlicing()`
+  - New Choice Type APIs: `isChoiceType()`, `getChoiceBaseName()`, `buildChoiceJsonKey()`, `parseChoiceJsonKey()`, `resolveActiveChoiceType()`, `resolveChoiceFromJsonKey()`
+  - New BackboneElement APIs: `isBackboneElement()`, `isArrayElement()`, `getBackboneChildren()`
+- **PrismUI** upgraded from `0.2.0` to `0.3.0`
+  - Modal management module
+  - Drawer management module
+  - Enhanced notification system
+
+### Refactored
+
+- **slice-engine.ts**: Rewritten as thin adapter over fhir-runtime Slicing APIs (~420 → ~105 lines)
+  - Removed self-implemented `extractSlicing()`, discriminator matching, deep-equal/pattern-match algorithms
+  - Delegates to `fhir-runtime`: `matchSlice()`, `countSliceInstances()`, `generateSliceSkeleton()`, `isExtensionSlicing()`
+  - New `getSlicingMap(profile)` replaces `extractSlicing(rawSD)` — slicing data comes from `profile.slicing` directly
+- **choice-type-engine.ts**: Rewritten as thin adapter over fhir-runtime Choice Type APIs (~186 → ~115 lines)
+  - Detection and resolution functions delegate to fhir-runtime
+  - App-layer functions retained: `switchChoiceType()`, `generateChoiceSkeleton()`
+- **instance-tree-engine.ts**: `isBackboneElement()` and `isArrayElement()` now delegate to fhir-runtime
+  - App-layer utilities retained: `getDeepValue()`, `setDeepValue()`, `addArrayItem()`, `removeArrayItem()`, `buildJsonPath()`
+- **adapter.ts**: Removed `TYPE_INFERENCE_FIXES` workaround and `isTypeMismatchFalsePositive()` (~100 lines removed)
+  - `validateResource()` simplified — no longer filters false-positive TYPE_MISMATCH issues
+- **profiles.ts**: Removed `rawSDCache`, `rawUsCoreSDCache`, `getRawStructureDefinition()`, `getRawUSCoreSD()`
+  - Raw StructureDefinition caches no longer needed since slicing is built into CanonicalProfile
+- **ComposerWorkspace.tsx**: Profile loading simplified — single `loadProfileFn()` call instead of `Promise.all([profile, rawSD])`
+- **ExplorerWorkspace.tsx**: Same simplification — slicing loaded from `getSlicingMap(profile)` instead of `extractSlicing(rawSD)`
+- **ComposerTree.tsx**: Updated `SlicedElement` API usage (`rules` at top level, not nested)
+- **DynamicForm.tsx**: Updated `SlicedElement` API usage (`discriminators` plural)
+
+### Removed
+
+- ~520 lines of self-implemented code replaced by fhir-runtime APIs
+- Raw StructureDefinition caching layer (no longer needed)
+- TYPE_MISMATCH false-positive workaround (bug fixed in fhir-runtime)
+
+### Dependencies
+
+- `fhir-runtime`: `^0.8.0` → `^0.10.0`
+- `@prismui/core`: `0.2.0` → `0.3.0`
+- `@prismui/react`: `0.2.0` → `0.3.0`
+
+---
+
 ## [0.2.0] - 2026-03-12
 
 ### Added

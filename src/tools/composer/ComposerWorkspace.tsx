@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNotification } from '@prismui/react';
 import type { CanonicalProfile, CanonicalElement } from 'fhir-runtime';
-import { getResourceTypeNames, getProfile, getUSCoreProfileNames, getUSCoreProfile, getRawStructureDefinition, getRawUSCoreSD } from '../../runtime/profiles';
+import { getResourceTypeNames, getProfile, getUSCoreProfileNames, getUSCoreProfile } from '../../runtime/profiles';
 import { PackageSelector } from '../validator/PackageSelector';
 import { validateResource } from '../../runtime/adapter';
 import type { AdapterValidationResult } from '../../runtime/adapter';
@@ -26,7 +26,7 @@ import {
   setDeepValue,
 } from './instance-tree-engine';
 import type { JsonPathSegment } from './instance-tree-engine';
-import { extractSlicing, generateSliceSkeleton } from './slice-engine';
+import { getSlicingMap, generateSliceSkeleton } from './slice-engine';
 import type { SlicedElementInfo } from './slice-engine';
 import type { editor } from 'monaco-editor';
 
@@ -147,16 +147,14 @@ export function ComposerWorkspace() {
       return;
     }
     const loadProfileFn = currentPackage === 'us-core' ? getUSCoreProfile : getProfile;
-    const loadRawFn = currentPackage === 'us-core' ? getRawUSCoreSD : getRawStructureDefinition;
-    Promise.all([loadProfileFn(selectedType), loadRawFn(selectedType)]).then(([p, rawSD]) => {
+    loadProfileFn(selectedType).then((p) => {
       if (p) {
         setProfile(p);
         const skeleton = generateSkeleton(p);
         updateResourceObject(skeleton);
-      }
-      if (rawSD) {
-        setSlicingMap(extractSlicing(rawSD));
+        setSlicingMap(getSlicingMap(p));
       } else {
+        setProfile(null);
         setSlicingMap(new Map());
       }
     });
