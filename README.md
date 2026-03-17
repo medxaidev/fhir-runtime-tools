@@ -1,6 +1,6 @@
 # FHIR Runtime Tools
 
-A browser-based developer toolkit for [fhir-runtime](https://github.com/nicefhir/fhir-runtime) — the TypeScript FHIR R4 execution engine. Validate resources, compose FHIR data visually, and explore instance structures, all running 100% in the browser with no backend.
+A browser-based developer toolkit for [fhir-runtime](https://github.com/medxaidev/fhir-runtime) — the TypeScript FHIR R4 execution engine. Validate resources, compose FHIR data visually, and explore instance structures, all running 100% in the browser with no backend.
 
 **Version:** 0.3.0 | **FHIR:** R4 (4.0.1) | **License:** MIT
 
